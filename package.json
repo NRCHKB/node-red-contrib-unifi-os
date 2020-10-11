@@ -1,0 +1,12 @@
+{
+    "name" : "node-red-contrib-unifi-os",
+    
+    "node-red" : {
+        "nodes": {
+            "cookie-monster": "CookieMonster.js"
+        }
+    },
+    "dependencies": {
+        "cookie": "0.4.1"
+    }
+}
