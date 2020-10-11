@@ -58,7 +58,7 @@ module.exports = function(RED)
                         
                         if (response.headers.hasOwnProperty('set-cookie'))
                         {
-                            node.send({responseCookies: extractCookies(response.headers['set-cookie']), setCookie: response.headers['set-cookie']});
+                            node.send({responseCookies: extractCookies(response.headers['set-cookie']), setCookie: response.headers['set-cookie'], csrfToken: response.headers['x-csrf-token']});
                         }
                     }
                     else
