@@ -1,6 +1,6 @@
 {
     "name" : "node-red-contrib-unifi-os",
-    
+    "version": "0.0.1",
     "node-red" : {
         "nodes": {
             "cookie-monster": "CookieMonster.js"
