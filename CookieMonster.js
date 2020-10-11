@@ -50,14 +50,14 @@ module.exports = function(RED)
                 {
                     // Debug message with full response
                     node.warn({headers: response.headers, payload: JSON.parse(body), status: response.statusCode});
-                    node.send({cookie: response.headers['set-cookie']});
+                    node.send({cookieSet: response.headers['set-cookie']});
                     
                     // If successful - save the important cookies for use in other nodes
                     if (response.statusCode == 200)
                     {
                         // Parsed cookie:
                         let cookiesJSON = cookie.parse(response.headers['set-cookie'][0]);
-                        node.send(cookiesJSON);
+                        node.send({cookieJSON: cookiesJSON});
                         
                         // let matches = [...response.headers['set-cookie'][0].matchAll(/TOKEN=([^;]+)/mg)];
 
