@@ -59,7 +59,7 @@ module.exports = function(RED)
                         // let cookiesJSON = cookie.parse(response.headers['set-cookie'][0]);
                         if (response.headers.hasOwnProperty('set-cookie'))
                         {
-                            node.send({responseCookies: extractCookies(response.headers['set-cookie']});
+                            node.send({responseCookies: extractCookies(response.headers['set-cookie'])});
                         }
                         
                         // let matches = [...response.headers['set-cookie'][0].matchAll(/TOKEN=([^;]+)/mg)];
