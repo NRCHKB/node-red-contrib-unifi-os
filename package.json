@@ -3,7 +3,7 @@
     "version": "0.0.2",
     "node-red" : {
         "nodes": {
-            "cookie-monster": "CookieMonster.js"
+            "unifi-login": "UnifiLogin.js"
         }
     },
     "dependencies": {

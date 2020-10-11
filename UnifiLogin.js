@@ -4,12 +4,12 @@ module.exports = function(RED)
     const cookie = require('cookie');
 
     /**
-     * The Cookie Monster node
+     * The Unifi Login node
      * 
      * @param {Object} config
      * @returns {void}
      */
-    function CookieMonster(config) 
+    function unifiLogin(config) 
     {
         RED.nodes.createNode(this, config);
         var node = this;
@@ -97,6 +97,6 @@ module.exports = function(RED)
         }
     }
 
-    // Register the CookieMonster node
-    RED.nodes.registerType("cookie-monster", CookieMonster);
+    // Register the unifiLogin node
+    RED.nodes.registerType("unifi-login", unifiLogin);
 }

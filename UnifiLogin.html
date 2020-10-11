@@ -1,5 +1,5 @@
 <script type="text/javascript">
-    RED.nodes.registerType('cookie-monster',
+    RED.nodes.registerType('unifi-login',
     {
         category: 'function',
         color: '#a6bbcf',
@@ -27,12 +27,12 @@
         icon: "file.png",
         label: function()
         {
-            return this.name || "cookie-monster";
+            return this.name || "unifi-login";
         }
     });
 </script>
 
-<script type="text/html" data-template-name="cookie-monster">
+<script type="text/html" data-template-name="unifi-login">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
@@ -51,6 +51,6 @@
     </div>
 </script>
 
-<script type="text/html" data-help-name="cookie-monster">
+<script type="text/html" data-help-name="unifi-login">
     <p>A simple node that logs into Unifi OS and sends the cookies to a single output.</p>
 </script>
