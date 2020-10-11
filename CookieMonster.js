@@ -1,10 +1,7 @@
-const { stringify } = require('querystring');
-
 module.exports = function(RED)
 {
     const https = require('https');
     const cookie = require('cookie');
-
 
     /**
      * The Cookie Monster node
@@ -26,6 +23,7 @@ module.exports = function(RED)
         node.on('input', function(msg) 
         {
             // Build the HTTPS request for Unifi OS
+            node.status({fill:"yellow",shape:"dot",text:"connecting"})
             const url = 'https://' + config.controllerIp + '/api/auth/login';
             const post_data = JSON.stringify({
                 username: config.username,
@@ -50,31 +48,22 @@ module.exports = function(RED)
                 {
                     // Debug message with full response
                     node.warn({headers: response.headers, payload: JSON.parse(body), status: response.statusCode});
-                    node.send({cookieSet: response.headers['set-cookie']});
-                    
+                    node.warn({cookieSet: response.headers['set-cookie']});
+                    node.status({fill:"green",shape:"dot",text:"connected"});
                     // If successful - save the important cookies for use in other nodes
                     if (response.statusCode == 200)
                     {
                         // Parsed cookie:
-                        // let cookiesJSON = cookie.parse(response.headers['set-cookie'][0]);
+                        // TEMPORARY - this is for compatibility with http request core node.
+                        
                         if (response.headers.hasOwnProperty('set-cookie'))
                         {
-                            node.send({responseCookies: extractCookies(response.headers['set-cookie'])});
+                            node.send({responseCookies: extractCookies(response.headers['set-cookie']), setCookie: response.headers['set-cookie']});
                         }
-                        
-                        // let matches = [...response.headers['set-cookie'][0].matchAll(/TOKEN=([^;]+)/mg)];
-
-                        // if (typeof matches[0][1] !== 'undefined')
-                        // {
-                        //     node.warn({cookie: matches[0][1]});
-                        // }
-                        // else
-                        // {
-                        //     node.warn('Unknown token');
-                        // }
                     }
                     else
                     {
+                        node.status({fill:"red",shape:"ring",text:"connection failed"});
                         node.warn(response.statusCode);
                     }
                 });
@@ -92,6 +81,8 @@ module.exports = function(RED)
             // Close request
             request.end();
         });
+
+        // Temp function for cookies in JSON
         function extractCookies(setCookie) {
             var cookies = {};
             setCookie.forEach(function(c) {
