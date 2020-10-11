@@ -56,8 +56,11 @@ module.exports = function(RED)
                     if (response.statusCode == 200)
                     {
                         // Parsed cookie:
-                        let cookiesJSON = cookie.parse(response.headers['set-cookie'][0]);
-                        node.send({cookieJSON: cookiesJSON});
+                        // let cookiesJSON = cookie.parse(response.headers['set-cookie'][0]);
+                        if (response.headers.hasOwnProperty('set-cookie'))
+                        {
+                            node.send({responseCookies: extractCookies(response.headers['set-cookie']});
+                        }
                         
                         // let matches = [...response.headers['set-cookie'][0].matchAll(/TOKEN=([^;]+)/mg)];
 
@@ -89,6 +92,18 @@ module.exports = function(RED)
             // Close request
             request.end();
         });
+        function extractCookies(setCookie) {
+            var cookies = {};
+            setCookie.forEach(function(c) {
+                var parsedCookie = cookie.parse(c);
+                var eq_idx = c.indexOf('=');
+                var key = c.substr(0, eq_idx).trim()
+                parsedCookie.value = parsedCookie[key];
+                delete parsedCookie[key];
+                cookies[key] = parsedCookie;
+            });
+            return cookies;
+        }
     }
 
     // Register the CookieMonster node
