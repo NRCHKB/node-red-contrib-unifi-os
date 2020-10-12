@@ -14,7 +14,9 @@ module.exports = function(RED)
         RED.nodes.createNode(this, config);
         let nodeHTTP = this;
         nodeHTTP.unifiLogin = RED.nodes.getNode(config.unifiLogin);
-        
+        nodeHTTP.controllerIp = this.unifiLogin.controllerIp;
+        nodeHTTP.setCookie = this.unifiLogin.setCookie;
+
         /**
          * Node input handler
          * 
@@ -24,14 +26,14 @@ module.exports = function(RED)
         nodeHTTP.on('input', function(msg)
         {
             nodeHTTP.send({things: this.unifiLogin});
-            const url = 'https://' + this.unifiConfig.controllerIp + msg.endpoint;
+            const url = 'https://' + nodeHTTP.controllerIp + msg.endpoint;
 
             // Request options
             const options = {
                 method: 'GET',
                 rejectUnauthorized: false,
                 headers: {
-                    cookie: this.unifiLogin.setCookie
+                    cookie: nodeHTTP.setCookie
                 }
             }
             const request = https.request(url, options, (response) =>
