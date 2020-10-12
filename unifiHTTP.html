@@ -20,12 +20,12 @@
         icon: "file.png",
         label: function()
         {
-            return this.name || "unifi-login";
+            return this.name || "unifi-HTTP";
         }
     });
 </script>
 
-<script type="text/html" data-template-name="unifi-login">
+<script type="text/html" data-template-name="unifi-HTTP">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
@@ -36,6 +36,6 @@
     </div>
 </script>
 
-<script type="text/html" data-help-name="unifi-login">
+<script type="text/html" data-help-name="unifi-HTTP">
     <p>HTTP GET command sent to Unifi OS, outputs payload of data from Unifi endpoint.</p>
 </script>
