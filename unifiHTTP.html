@@ -1,0 +1,41 @@
+<script type="text/javascript">
+    RED.nodes.registerType('unifi-login',
+    {
+        category: 'function',
+        color: '#a6bbcf',
+        defaults:
+        {
+            name: {
+                value: '',
+                required: false
+            },
+            UnifiLogin: {
+                value: '',
+                type:"unifi-login",
+                required: true
+            }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "file.png",
+        label: function()
+        {
+            return this.name || "unifi-login";
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="unifi-login">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-UnifiLogin"><i class="fa fa-globe"></i> Controller</label>
+        <select type="text" id="node-input-UnifiLogin" placeholder="Controller IP">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="unifi-login">
+    <p>HTTP GET command sent to Unifi OS, outputs payload of data from Unifi endpoint.</p>
+</script>

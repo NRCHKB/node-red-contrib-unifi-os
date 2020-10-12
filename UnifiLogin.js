@@ -12,7 +12,7 @@ module.exports = function(RED)
     function unifiLogin(config) 
     {
         RED.nodes.createNode(this, config);
-        var node = this;
+        let node = this;
 
         /**
          * This node's input handler
@@ -53,6 +53,7 @@ module.exports = function(RED)
                     // If successful - save the important cookies for use in other nodes
                     if (response.statusCode == 200)
                     {
+                        config.cookie = response.headers['set-cookie'];
                         // Parsed cookie:
                         // TEMPORARY - this is for compatibility with http request core node.
                         
@@ -84,11 +85,11 @@ module.exports = function(RED)
 
         // Temp function for cookies in JSON
         function extractCookies(setCookie) {
-            var cookies = {};
+            let cookies = {};
             setCookie.forEach(function(c) {
-                var parsedCookie = cookie.parse(c);
-                var eq_idx = c.indexOf('=');
-                var key = c.substr(0, eq_idx).trim()
+                let parsedCookie = cookie.parse(c);
+                let eq_idx = c.indexOf('=');
+                let key = c.substr(0, eq_idx).trim()
                 parsedCookie.value = parsedCookie[key];
                 delete parsedCookie[key];
                 cookies[key] = parsedCookie;
