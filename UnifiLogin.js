@@ -13,6 +13,7 @@ module.exports = function(RED)
     {
         RED.nodes.createNode(this, config);
         let node = this;
+        this.controllerIp = config.controllerIp;
 
         /**
          * This node's input handler
