@@ -25,7 +25,7 @@ module.exports = function(RED)
          */
         nodeHTTP.on('input', function(msg)
         {
-            nodeHTTP.send({things: this.unifiLogin});
+            nodeHTTP.send({setCookie: nodeHTTP.setCookie, controllerIp: nodeHTTP.controllerIp});
             const url = 'https://' + nodeHTTP.controllerIp + msg.endpoint;
 
             // Request options
@@ -41,7 +41,7 @@ module.exports = function(RED)
                 response.on('data', (body) =>
                 {
                     // Debug message with full response
-                    node.warn({headers: response.headers, payload: JSON.parse(body), status: response.statusCode});
+                    nodeHTTP.warn({headers: response.headers, payload: JSON.parse(body), status: response.statusCode});
                     if (response.statusCode == 200)
                     {
                         // Do something if successful request
@@ -49,7 +49,7 @@ module.exports = function(RED)
                     else
                     {
                         // Do something if request fails
-                        node.warn(response.statusCode);
+                        nodeHTTP.warn(response.statusCode);
                     }
                 });
             });
@@ -57,11 +57,11 @@ module.exports = function(RED)
             // Catch login errors
             request.on('error', (e) =>
             {
-                node.warn(e);
+                nodeHTTP.warn(e);
             });
 
             // Include post data
-            request.write(post_data);
+            // request.write(post_data);
 
             // Close request
             request.end();
