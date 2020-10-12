@@ -53,7 +53,8 @@ module.exports = function(RED)
                     // If successful - save the important cookies for use in other nodes
                     if (response.statusCode == 200)
                     {
-                        config.cookie = response.headers['set-cookie'];
+                        node.setCookie = response.headers['set-cookie'];
+                        node.warn(config.cookie);
                         // Parsed cookie:
                         // TEMPORARY - this is for compatibility with http request core node.
                         
