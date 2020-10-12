@@ -24,7 +24,7 @@ module.exports = function(RED)
         nodeHTTP.on('input', function(msg)
         {
             nodeHTTP.send({things: this.unifiLogin});
-            const url = 'https://' + nodeHTTP.unifiConfig.controllerIp + msg.endpoint;
+            const url = 'https://' + this.unifiConfig.controllerIp + msg.endpoint;
 
             // Request options
             const options = {
