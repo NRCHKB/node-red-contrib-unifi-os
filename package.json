@@ -3,7 +3,8 @@
     "version": "0.0.3",
     "node-red" : {
         "nodes": {
-            "unifi-login": "UnifiLogin.js"
+            "unifi-login": "UnifiLogin.js",
+            "unifi-HTTP": "unifiHTTP.js"
         }
     },
     "dependencies": {
