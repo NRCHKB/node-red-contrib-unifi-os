@@ -49,12 +49,12 @@ module.exports = function(RED)
                 {
                     // Debug message with full response
                     node.warn({headers: response.headers, payload: JSON.parse(body), status: response.statusCode});
-                    node.warn({cookieSet: response.headers['set-cookie']});
+                    node.warn({setCookie: response.headers['set-cookie']});
                     node.status({fill:"green",shape:"dot",text:"connected"});
                     // If successful - save the important cookies for use in other nodes
                     if (response.statusCode == 200)
                     {
-                        this.setCookie = response.headers['set-cookie'];
+                        node.setCookie = response.headers['set-cookie'];
                         node.warn(node.setCookie);
                         // Parsed cookie:
                         // TEMPORARY - this is for compatibility with http request core node.

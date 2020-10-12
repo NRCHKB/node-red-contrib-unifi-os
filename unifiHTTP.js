@@ -15,7 +15,7 @@ module.exports = function(RED)
         let nodeHTTP = this;
         nodeHTTP.unifiLogin = RED.nodes.getNode(config.unifiLogin);
         nodeHTTP.controllerIp = this.unifiLogin.controllerIp;
-        nodeHTTP.setCookie = this.unifiLogin.setCookie;
+        
 
         /**
          * Node input handler
@@ -25,6 +25,7 @@ module.exports = function(RED)
          */
         nodeHTTP.on('input', function(msg)
         {
+            nodeHTTP.setCookie = this.unifiLogin.setCookie;
             nodeHTTP.send({setCookie: nodeHTTP.setCookie, controllerIp: nodeHTTP.controllerIp});
             const url = 'https://' + nodeHTTP.controllerIp + msg.endpoint;
 
