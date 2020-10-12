@@ -24,45 +24,45 @@ module.exports = function(RED)
         nodeHTTP.on('input', function(msg)
         {
             nodeHTTP.send({things: this.unifiLogin});
-            // const url = 'https://' + nodeHTTP.unifiConfig.config.controllerIp + msg.endpoint;
+            const url = 'https://' + nodeHTTP.unifiConfig.config.controllerIp + msg.endpoint;
 
-            // // Request options
-            // const options = {
-            //     method: 'GET',
-            //     rejectUnauthorized: false,
-            //     headers: {
-            //         cookie: nodeHTTP.unifiConfig.config.cookie
-            //     }
-            // }
-            // const request = https.request(url, options, (response) =>
-            // {
-            //     response.on('data', (body) =>
-            //     {
-            //         // Debug message with full response
-            //         node.warn({headers: response.headers, payload: JSON.parse(body), status: response.statusCode});
-            //         if (response.statusCode == 200)
-            //         {
-            //             // Do something if successful request
-            //         }
-            //         else
-            //         {
-            //             // Do something if request fails
-            //             node.warn(response.statusCode);
-            //         }
-            //     });
-            // });
+            // Request options
+            const options = {
+                method: 'GET',
+                rejectUnauthorized: false,
+                headers: {
+                    cookie: this.unifiLogin.setCookie
+                }
+            }
+            const request = https.request(url, options, (response) =>
+            {
+                response.on('data', (body) =>
+                {
+                    // Debug message with full response
+                    node.warn({headers: response.headers, payload: JSON.parse(body), status: response.statusCode});
+                    if (response.statusCode == 200)
+                    {
+                        // Do something if successful request
+                    }
+                    else
+                    {
+                        // Do something if request fails
+                        node.warn(response.statusCode);
+                    }
+                });
+            });
             
-            // // Catch login errors
-            // request.on('error', (e) =>
-            // {
-            //     node.warn(e);
-            // });
+            // Catch login errors
+            request.on('error', (e) =>
+            {
+                node.warn(e);
+            });
 
-            // // Include post data
-            // request.write(post_data);
+            // Include post data
+            request.write(post_data);
 
-            // // Close request
-            // request.end();
+            // Close request
+            request.end();
         });
     }
 
