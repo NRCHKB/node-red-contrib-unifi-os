@@ -17,7 +17,7 @@ module.exports = (RED) => {
         if (!self.loginNode) {
             throw new Error("Login Node not found");
         }
-        self.on('input', (msg) => {
+        self.on('input', function (msg) {
             debug('Received message: ' + JSON.stringify(msg));
             if (!validateInputPayload(msg.payload)) {
                 throw new Error("Invalid payload");
@@ -31,8 +31,8 @@ module.exports = (RED) => {
                     cookie: self.loginNode.setCookie,
                 },
             };
-            const request = https.request(url, options, (response) => {
-                response.on('data', (body) => {
+            const request = https.request(url, options, function (response) {
+                response.on('data', function (body) {
                     self.warn({
                         headers: response.headers,
                         payload: JSON.parse(body),
@@ -46,7 +46,7 @@ module.exports = (RED) => {
                     }
                 });
             });
-            request.on('error', (e) => {
+            request.on('error', function (e) {
                 self.warn(e);
             });
             request.end();

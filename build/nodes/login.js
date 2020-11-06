@@ -7,7 +7,7 @@ module.exports = (RED) => {
         const self = this;
         RED.nodes.createNode(self, config);
         self.config = config;
-        self.on('input', (msg) => {
+        self.on('input', function (msg) {
             debug('Received message: ' + JSON.stringify(msg));
             self.status({ fill: 'yellow', shape: 'dot', text: 'connecting' });
             const url = 'https://' + self.config.controllerIp + '/api/auth/login';
@@ -24,8 +24,8 @@ module.exports = (RED) => {
                     'Content-Length': Buffer.byteLength(post_data),
                 },
             };
-            const request = https.request(url, options, (response) => {
-                response.on('data', (body) => {
+            const request = https.request(url, options, function (response) {
+                response.on('data', function (body) {
                     self.warn({
                         headers: response.headers,
                         payload: JSON.parse(body),
@@ -53,7 +53,7 @@ module.exports = (RED) => {
                     }
                 });
             });
-            request.on('error', (e) => {
+            request.on('error', function (e) {
                 self.warn(e);
             });
             request.write(post_data);
