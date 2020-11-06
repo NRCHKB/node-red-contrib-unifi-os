@@ -53,7 +53,7 @@ module.exports = (RED: NodeAPI) => {
             }
 
             const request = https.request(url, options, (response: IncomingMessage) => {
-                response.on('data', (body: any) => {
+                response.on('data', function (body: any) {
                     // Debug message with full response
                     self.warn({
                         headers: response.headers,
