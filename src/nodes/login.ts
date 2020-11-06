@@ -15,7 +15,7 @@ module.exports = (RED: NodeAPI) => {
         RED.nodes.createNode(self, config)
         self.config = config
 
-        self.on('input',  (msg) => {
+        self.on('input', function (msg) {
             debug('Received message: ' + JSON.stringify(msg))
 
             // Build the HTTPS request for Unifi OS

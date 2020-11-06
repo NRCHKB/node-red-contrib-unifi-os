@@ -32,7 +32,7 @@ module.exports = (RED: NodeAPI) => {
             throw new Error("Login Node not found")
         }
 
-        self.on('input', (msg) => {
+        self.on('input', function (msg) {
             debug('Received message: ' + JSON.stringify(msg))
 
             if (!validateInputPayload(msg.payload)) {
