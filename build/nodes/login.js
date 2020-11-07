@@ -29,13 +29,14 @@ module.exports = (RED) => {
         self.on('input', function (msg) {
             debug('Received message: ' + JSON.stringify(msg));
             self.status({ fill: 'yellow', shape: 'dot', text: 'connecting' });
-            const url = 'https://' + self.config.controllerIp + '/api/auth/login';
+            const url = self.config.controllerIp + '/api/auth/login';
             const post_data = JSON.stringify({
                 username: self.config.username,
                 password: self.config.pass,
             });
             const options = {
                 hostname: url,
+                port: 443,
                 method: 'POST',
                 rejectUnauthorized: false,
                 keepAlive: true,
