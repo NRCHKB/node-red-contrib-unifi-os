@@ -67,6 +67,12 @@ module.exports = (RED) => {
         }
         self.on('input', (msg) => {
             debug('Received input message: ' + JSON.stringify(msg))
+            if (!self.loginNode.controllerIp) {
+                throw new Error('Login Node controllerIp not set!')
+            }
+            if (!self.loginNode.setCookie) {
+                throw new Error('Login Node setCookie not set!')
+            }
             if (!validateInputPayload(msg.payload)) {
                 throw new Error('Invalid payload')
             }

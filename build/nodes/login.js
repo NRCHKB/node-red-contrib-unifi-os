@@ -56,44 +56,41 @@ module.exports = (RED) => {
         const self = this
         RED.nodes.createNode(self, config)
         self.config = config
-        self.on('input', (msg) => {
-            debug('Received input message: ' + JSON.stringify(msg))
-            self.status({ fill: 'yellow', shape: 'dot', text: 'connecting' })
-            const url =
-                'https://' + self.config.controllerIp + '/api/auth/login'
-            axios_1.default
-                .request({
-                    method: 'post',
-                    url,
-                    data: {
-                        username: self.config.username,
-                        password: self.config.pass,
-                    },
-                    httpsAgent: new https.Agent({
-                        rejectUnauthorized: false,
-                    }),
-                })
-                .then((response) => {
-                    if (response.status === 200) {
-                        self.setCookie = response.headers['set-cookie']
-                        debug('Cookie received: ' + self.setCookie)
-                        self.status({
-                            fill: 'green',
-                            shape: 'dot',
-                            text: 'connected',
-                        })
-                    } else {
-                        self.status({
-                            fill: 'red',
-                            shape: 'ring',
-                            text: 'connection failed',
-                        })
-                    }
-                })
-                .catch((reason) => {
-                    self.error(reason)
-                })
-        })
+        self.name = self.config.name
+        self.status({ fill: 'yellow', shape: 'dot', text: 'connecting' })
+        const url = 'https://' + self.config.controllerIp + '/api/auth/login'
+        axios_1.default
+            .request({
+                method: 'post',
+                url,
+                data: {
+                    username: self.config.username,
+                    password: self.config.pass,
+                },
+                httpsAgent: new https.Agent({
+                    rejectUnauthorized: false,
+                }),
+            })
+            .then((response) => {
+                if (response.status === 200) {
+                    self.setCookie = response.headers['set-cookie']
+                    debug('Cookie received: ' + self.setCookie)
+                    self.status({
+                        fill: 'green',
+                        shape: 'dot',
+                        text: 'connected',
+                    })
+                } else {
+                    self.status({
+                        fill: 'red',
+                        shape: 'ring',
+                        text: 'connection failed',
+                    })
+                }
+            })
+            .catch((reason) => {
+                self.error(reason)
+            })
     }
     RED.nodes.registerType('unifi-login', unifiLogin)
 }
