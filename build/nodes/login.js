@@ -25,7 +25,9 @@ module.exports = (RED) => {
                 },
             };
             const request = https.request(url, options, function (response) {
+                debug("Request sent");
                 response.on('data', function (body) {
+                    debug("Handling response");
                     self.warn({
                         headers: response.headers,
                         payload: JSON.parse(body),

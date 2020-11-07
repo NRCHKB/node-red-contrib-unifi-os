@@ -39,7 +39,10 @@ module.exports = (RED: NodeAPI) => {
 
             // Send login to Unifi, if successful, cookies will be returned in response
             const request = https.request(url, options, function (response: IncomingMessage) {
+                debug("Request sent")
+
                 response.on('data', function (body) {
+                    debug("Handling response")
                     // Debug message with full response
                     self.warn({
                         headers: response.headers,
