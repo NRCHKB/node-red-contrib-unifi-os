@@ -20,7 +20,8 @@ module.exports = (RED: NodeAPI) => {
 
             // Build the HTTPS request for Unifi OS
             self.status({ fill: 'yellow', shape: 'dot', text: 'connecting' })
-            const url = self.config.controllerIp + '/api/auth/login'
+            const url = 'https://' + self.config.controllerIp + '/api/auth/login'
+
             const post_data = JSON.stringify({
                 username: self.config.username,
                 password: self.config.pass,
@@ -28,8 +29,6 @@ module.exports = (RED: NodeAPI) => {
 
             // Request options
             const options = {
-                hostname: url,
-                port: 443,
                 method: 'POST',
                 rejectUnauthorized: false,
                 keepAlive: true,
@@ -40,7 +39,7 @@ module.exports = (RED: NodeAPI) => {
             }
 
             // Send login to Unifi, if successful, cookies will be returned in response
-            const request = https.request(options, (response: http.IncomingMessage) => {
+            const request = https.request(url, options, (response: http.IncomingMessage) => {
                 debug("Request sent")
 
                 response.on('data', function (body) {
