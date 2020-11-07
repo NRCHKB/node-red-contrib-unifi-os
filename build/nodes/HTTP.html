@@ -9,7 +9,7 @@
                 value: '',
                 required: false
             },
-            unifiLogin: {
+            loginNodeId: {
                 value: '',
                 type:'unifi-login',
                 required: true
@@ -22,37 +22,6 @@
         {
             return this.name || "unifi-HTTP";
         },
-        oneditprepare: function() 
-        {
-            let node = this
-            const selectUnifiLogin = $('#node-input-unifiLogin')
-            const candidateNodes = RED.nodes.filterNodes({
-                type: 'unifi-login'
-            })
-            candidateNodes.forEach(function(n) {
-                //do stuff here.
-                const value = n.id
-                const text = n.name
-                selectUnifiLogin.append(
-                    $('<option></option>')
-                        .val(value)
-                        .text(text),
-                )
-            })
-            selectUnifiLogin
-                .find('option')
-                .filter(function() {
-                    return $(this).val() === node.unifiLogin
-                })
-                .attr('selected', true)
-            selectUnifiLogin.change()
-        },
-        oneditsave: function() {
-            node = this
-            node.unifiLogin = $(
-                '#node-input-unifiLogin option:selected',
-            ).val()
-        }
     });
 </script>
 
@@ -62,8 +31,8 @@
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
     <div class="form-row">
-        <label for="node-input-unifiLogin"><i class="fa fa-globe"></i> Controller</label>
-        <select id="node-input-unifiLogin">
+        <label for="node-input-loginNodeId"><i class="fa fa-globe"></i> Controller</label>
+        <select id="node-input-loginNodeId">
             <option value="">Choose...</option>
         </select>
     </div>
