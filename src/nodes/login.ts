@@ -2,6 +2,7 @@ import { NodeAPI } from 'node-red'
 import LoginNodeType from '../types/LoginNodeType'
 import LoginNodeConfigType from '../types/LoginNodeConfigType'
 import axios, { AxiosResponse } from 'axios'
+import * as https from 'https'
 
 module.exports = (RED: NodeAPI) => {
     const debug = require('debug')('UNIFI:login')
@@ -45,6 +46,9 @@ module.exports = (RED: NodeAPI) => {
                     username: self.config.username,
                     password: self.config.pass,
                 },
+                httpsAgent: new https.Agent({
+                    rejectUnauthorized: false
+                })
             }).then((response: AxiosResponse) => {
                 debug('Request sent')
 
