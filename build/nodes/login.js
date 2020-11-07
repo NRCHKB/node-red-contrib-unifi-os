@@ -35,6 +35,7 @@ module.exports = (RED) => {
                 password: self.config.pass,
             });
             const options = {
+                hostname: url,
                 method: 'POST',
                 rejectUnauthorized: false,
                 keepAlive: true,
@@ -43,7 +44,7 @@ module.exports = (RED) => {
                     'Content-Length': Buffer.byteLength(post_data),
                 },
             };
-            const request = https.request(url, options, function (response) {
+            const request = https.request(options, (response) => {
                 debug("Request sent");
                 response.on('data', function (body) {
                     debug("Handling response");

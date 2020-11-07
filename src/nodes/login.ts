@@ -1,8 +1,8 @@
 import { NodeAPI } from 'node-red'
 import LoginNodeType from '../types/LoginNodeType'
 import LoginNodeConfigType from '../types/LoginNodeConfigType'
-import {IncomingMessage} from 'http'
 import * as https from 'https'
+import * as http from 'http'
 
 module.exports = (RED: NodeAPI) => {
     const debug = require('debug')('UNIFI:login')
@@ -28,6 +28,7 @@ module.exports = (RED: NodeAPI) => {
 
             // Request options
             const options = {
+                hostname: url,
                 method: 'POST',
                 rejectUnauthorized: false,
                 keepAlive: true,
@@ -38,7 +39,7 @@ module.exports = (RED: NodeAPI) => {
             }
 
             // Send login to Unifi, if successful, cookies will be returned in response
-            const request = https.request(url, options, function (response: IncomingMessage) {
+            const request = https.request(options, (response: http.IncomingMessage) => {
                 debug("Request sent")
 
                 response.on('data', function (body) {
