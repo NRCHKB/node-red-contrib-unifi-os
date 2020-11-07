@@ -75,6 +75,8 @@ module.exports = (RED: NodeAPI) => {
                     self.warn(response.status)
                     debug('Cookie not received')
                 }
+            }).catch((reason: any) => {
+                self.error(reason)
             })
         })
     }

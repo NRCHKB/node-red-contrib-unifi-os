@@ -49,6 +49,8 @@ module.exports = (RED) => {
                     self.warn(response.status);
                     debug('Cookie not received');
                 }
+            }).catch((reason) => {
+                self.error(reason);
             });
         });
     };
