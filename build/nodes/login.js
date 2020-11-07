@@ -43,7 +43,7 @@ module.exports = (RED) => {
                     'Content-Length': Buffer.byteLength(post_data),
                 },
             };
-            const request = https.request(url, options, (response) => {
+            const handleResponse = function (response) {
                 debug("Request sent");
                 response.on('data', function (body) {
                     debug("Handling response");
@@ -73,7 +73,8 @@ module.exports = (RED) => {
                         debug("Cookie not received");
                     }
                 });
-            });
+            };
+            const request = https.request(url, options, handleResponse);
             request.on('error', function (e) {
                 self.warn(e);
             });

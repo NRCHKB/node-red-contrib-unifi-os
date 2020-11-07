@@ -38,8 +38,7 @@ module.exports = (RED: NodeAPI) => {
                 },
             }
 
-            // Send login to Unifi, if successful, cookies will be returned in response
-            const request = https.request(url, options, (response: http.IncomingMessage) => {
+            const handleResponse = function (response: http.IncomingMessage) {
                 debug("Request sent")
 
                 response.on('data', function (body) {
@@ -71,7 +70,10 @@ module.exports = (RED: NodeAPI) => {
                         debug("Cookie not received")
                     }
                 })
-            })
+            }
+
+            // Send login to Unifi, if successful, cookies will be returned in response
+            const request = https.request(url, options, handleResponse)
 
             // Catch login errors
             request.on('error', function (e: Error) {
