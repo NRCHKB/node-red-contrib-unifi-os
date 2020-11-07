@@ -45,7 +45,8 @@ module.exports = (RED) => {
                     rejectUnauthorized: false
                 })
             }).then((response) => {
-                debug('Handling response: ' + JSON.stringify(response));
+                debug('Handling response');
+                self.debug(response);
                 self.warn({
                     headers: response.headers,
                     payload: response.data,

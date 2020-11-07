@@ -50,7 +50,8 @@ module.exports = (RED: NodeAPI) => {
                     rejectUnauthorized: false
                 })
             }).then((response: AxiosResponse) => {
-                debug('Handling response: ' + JSON.stringify(response))
+                debug('Handling response')
+                self.debug(response)
 
                 // Debug message with full response
                 self.warn({
