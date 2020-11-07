@@ -20,7 +20,7 @@ Known websocket endpoints at this point, please open an issue or PR if you know 
 - System (system events and equipment stats) `/api/ws/system`
 
 Dependencies, try to have as few as possible
-- https
+- axios (for http requests)
 - ws
 
 ## Collaboration

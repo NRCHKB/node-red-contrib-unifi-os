@@ -2,19 +2,15 @@ import { NodeAPI } from 'node-red'
 import HttpNodeConfigType from '../types/HttpNodeConfigType'
 import HttpNodeType from '../types/HttpNodeType'
 import LoginNodeType from '../types/LoginNodeType'
-import { IncomingMessage } from 'http'
 import LoginNodeInputPayloadType from '../types/LoginNodeInputPayloadType'
+import Axios, { AxiosResponse } from 'axios'
+import * as https from 'https'
 
 module.exports = (RED: NodeAPI) => {
-    const https = require('https')
     const debug = require('debug')('UNIFI:HTTP')
 
     const validateInputPayload = (payload: any): boolean => {
-        if (!payload?.endpoint) {
-            return false
-        }
-
-        return true
+        return payload?.endpoint
     }
 
     const unifiHTTP = function (
@@ -32,8 +28,8 @@ module.exports = (RED: NodeAPI) => {
             throw new Error('Login Node not found')
         }
 
-        self.on('input', function (msg) {
-            debug('Received message: ' + JSON.stringify(msg))
+        self.on('input', (msg) => {
+            debug('Received input message: ' + JSON.stringify(msg))
 
             if (!validateInputPayload(msg.payload)) {
                 throw new Error('Invalid payload')
@@ -44,46 +40,34 @@ module.exports = (RED: NodeAPI) => {
             const url =
                 'https://' + self.loginNode.controllerIp + inputPayload.endpoint
 
-            // Request options
-            const options = {
-                method: 'GET',
-                rejectUnauthorized: false,
+            Axios.request({
+                method: 'get',
+                url,
                 headers: {
                     cookie: self.loginNode.setCookie,
                 },
-            }
-
-            const request = https.request(url, options, function (
-                response: IncomingMessage
-            ) {
-                response.on('data', function (body: any) {
-                    // Debug message with full response
-                    self.warn({
-                        headers: response.headers,
-                        payload: JSON.parse(body),
-                        status: response.statusCode,
-                    })
-                    debug()
-
-                    if (response.statusCode == 200) {
-                        // Do something if successful request
+                httpsAgent: new https.Agent({
+                    rejectUnauthorized: false,
+                }),
+            })
+                .then((response: AxiosResponse) => {
+                    if (response.status === 200) {
+                        self.status({
+                            fill: 'green',
+                            shape: 'dot',
+                            text: 'request successful',
+                        })
                     } else {
-                        // Do something if request fails
-                        self.warn(response.statusCode)
+                        self.status({
+                            fill: 'red',
+                            shape: 'ring',
+                            text: 'request failed',
+                        })
                     }
                 })
-            })
-
-            // Catch login errors
-            request.on('error', function (e: Error) {
-                self.warn(e)
-            })
-
-            // Include post data
-            // request.write(post_data);
-
-            // Close request
-            request.end()
+                .catch((reason: any) => {
+                    self.error(reason)
+                })
         })
     }
 
