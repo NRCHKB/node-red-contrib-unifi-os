@@ -45,11 +45,10 @@ module.exports = (RED) => {
                     rejectUnauthorized: false
                 })
             }).then((response) => {
-                debug('Request sent');
-                debug('Handling response');
+                debug('Handling response: ' + JSON.stringify(response));
                 self.warn({
                     headers: response.headers,
-                    payload: JSON.parse(response.data),
+                    payload: response.data,
                     status: response.status,
                 });
                 self.warn({ setCookie: response.headers['set-cookie'] });

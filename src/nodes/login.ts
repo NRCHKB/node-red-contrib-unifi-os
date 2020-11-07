@@ -50,21 +50,23 @@ module.exports = (RED: NodeAPI) => {
                     rejectUnauthorized: false
                 })
             }).then((response: AxiosResponse) => {
-                debug('Request sent')
+                debug('Handling response: ' + JSON.stringify(response))
 
-                debug('Handling response')
                 // Debug message with full response
                 self.warn({
                     headers: response.headers,
-                    payload: JSON.parse(response.data),
+                    payload: response.data,
                     status: response.status,
                 })
+
                 self.warn({ setCookie: response.headers['set-cookie'] })
+
                 self.status({
                     fill: 'green',
                     shape: 'dot',
                     text: 'connected',
                 })
+
                 // If successful - save the important cookies for use in other nodes
                 if (response.status == 200) {
                     self.setCookie = response.headers['set-cookie']
