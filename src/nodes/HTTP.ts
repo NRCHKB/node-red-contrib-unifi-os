@@ -2,7 +2,7 @@ import { NodeAPI } from 'node-red'
 import HttpNodeConfigType from '../types/HttpNodeConfigType'
 import HttpNodeType from '../types/HttpNodeType'
 import LoginNodeType from '../types/LoginNodeType'
-import {IncomingMessage} from 'http'
+import { IncomingMessage } from 'http'
 import LoginNodeInputPayloadType from '../types/LoginNodeInputPayloadType'
 
 module.exports = (RED: NodeAPI) => {
@@ -29,19 +29,20 @@ module.exports = (RED: NodeAPI) => {
         self.loginNode = RED.nodes.getNode(config.loginNodeId) as LoginNodeType
 
         if (!self.loginNode) {
-            throw new Error("Login Node not found")
+            throw new Error('Login Node not found')
         }
 
         self.on('input', function (msg) {
             debug('Received message: ' + JSON.stringify(msg))
 
             if (!validateInputPayload(msg.payload)) {
-                throw new Error("Invalid payload")
+                throw new Error('Invalid payload')
             }
 
             const inputPayload = msg.payload as LoginNodeInputPayloadType
 
-            const url = 'https://' + self.loginNode.controllerIp + inputPayload.endpoint
+            const url =
+                'https://' + self.loginNode.controllerIp + inputPayload.endpoint
 
             // Request options
             const options = {
@@ -52,7 +53,9 @@ module.exports = (RED: NodeAPI) => {
                 },
             }
 
-            const request = https.request(url, options, function (response: IncomingMessage) {
+            const request = https.request(url, options, function (
+                response: IncomingMessage
+            ) {
                 response.on('data', function (body: any) {
                     // Debug message with full response
                     self.warn({

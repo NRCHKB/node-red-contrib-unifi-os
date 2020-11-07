@@ -15,12 +15,12 @@ module.exports = (RED) => {
         self.config = config;
         self.loginNode = RED.nodes.getNode(config.loginNodeId);
         if (!self.loginNode) {
-            throw new Error("Login Node not found");
+            throw new Error('Login Node not found');
         }
         self.on('input', function (msg) {
             debug('Received message: ' + JSON.stringify(msg));
             if (!validateInputPayload(msg.payload)) {
-                throw new Error("Invalid payload");
+                throw new Error('Invalid payload');
             }
             const inputPayload = msg.payload;
             const url = 'https://' + self.loginNode.controllerIp + inputPayload.endpoint;
