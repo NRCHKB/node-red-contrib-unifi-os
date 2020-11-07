@@ -2,9 +2,9 @@ import { NodeAPI } from 'node-red'
 import LoginNodeType from '../types/LoginNodeType'
 import LoginNodeConfigType from '../types/LoginNodeConfigType'
 import {IncomingMessage} from 'http'
+import * as https from 'https'
 
 module.exports = (RED: NodeAPI) => {
-    const https = require('https')
     const debug = require('debug')('UNIFI:login')
 
     const unifiLogin = function (
