@@ -1,0 +1,56 @@
+<script type="text/javascript">
+    RED.nodes.registerType('unifi-login',
+    {
+        category: 'config',
+        color: '#a6bbcf',
+        defaults:
+        {
+            name: {
+                value: '',
+                required: true
+            },
+            controllerIp: {
+                value: '',
+                required: true
+            },
+            username: {
+                value: '',
+                required: true
+            },
+            pass: {
+                value: '',
+                required: true
+            }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "file.png",
+        label: function()
+        {
+            return this.name || "unifi-login";
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="unifi-login">
+    <div class="form-row">
+        <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-config-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-controllerIp"><i class="fa fa-globe"></i> Controller IP</label>
+        <input type="text" id="node-config-input-controllerIp" placeholder="Controller IP">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-username"><i class="fa fa-user"></i> Unifi User Name</label>
+        <input type="text" id="node-config-input-username" placeholder="User Name">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-pass"><i class="fa fa-key"></i> Password</label>
+        <input type="password" id="node-config-input-pass" placeholder="Password">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="unifi-login">
+    <p>A simple node that logs into Unifi OS and sends the cookies to a single output.</p>
+</script>

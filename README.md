@@ -2,7 +2,7 @@
 Unifi OS nodes with websocket connections
 
 October 11, 2020\
-Work in progress. Goal is to create a set of nodered nodes which will connect to Unifi OS controller and protect websockets to push information from Unifi OS into nodered. 
+Work in progress. Goal is to create a set of Node-RED nodes which will connect to Unifi OS controller and protect websockets to push information from Unifi OS into Node-RED. 
 
 ## Project Goals and Outline (November 3, 2020)
 
@@ -19,7 +19,13 @@ Known websocket endpoints at this point, please open an issue or PR if you know 
 - Unifi Protect (cameras) `/proxy/protect/ws/updates` (requires query after URL)
 - System (system events and equipment stats) `/api/ws/system`
 
-Dependncies, try to have as few as possible
-- https
+Dependencies, try to have as few as possible
+- axios (for http requests)
 - ws
 
+## Collaboration
+1. To install dependencies
+``yarn install``
+
+2. To build
+``yarn build``
