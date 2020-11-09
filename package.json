@@ -1,13 +1,88 @@
 {
-    "name" : "node-red-contrib-unifi-os",
-    "version": "0.0.4-dev4",
-    "node-red" : {
+    "name": "node-red-contrib-unifi-os",
+    "version": "0.0.4-dev11",
+    "description": "NODE_DESCRIPTION_HERE",
+    "main": "build/nodes/unifi.js",
+    "scripts": {
+        "build": "yarn clean && tsc",
+        "clean": "rimraf build/**/*.js",
+        "test": "yarn build && mocha -r ts-node/register './src/**/*.test.[tj]s' --exit",
+        "prettier": "prettier --write src/**/*.{js,ts}",
+        "lint": "eslint src/**/*.{js,ts} --fix"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/crxporter/node-red-contrib-unifi-os"
+    },
+    "keywords": [
+        "node-red",
+        "iot",
+        "unifi"
+    ],
+    "node-red": {
         "nodes": {
-            "unifi-login": "UnifiLogin.js",
-            "unifi-HTTP": "unifiHTTP.js"
+            "unifi": "build/nodes/unifi.js",
+            "login": "build/nodes/login.js",
+            "HTTP": "build/nodes/HTTP.js"
         }
     },
+    "author": {
+        "name": "Mr CRXPorter",
+        "email": "ENTER_MAIL_HERE"
+    },
+    "contributors": [
+        "Mr CRXPorter",
+        "Mr Shaquu"
+    ],
+    "license": "Apache-2.0",
+    "bugs": {
+        "url": "https://github.com/crxporter/node-red-contrib-unifi-os/issues"
+    },
+    "homepage": "https://github.com/crxporter/node-red-contrib-unifi-os#readme",
     "dependencies": {
+        "axios": "^0.21.0",
         "cookie": "0.4.1"
-    }
+    },
+    "devDependencies": {
+        "@types/axios": "^0.14.0",
+        "@types/debug": "^4.1.5",
+        "@types/mocha": "^8.0.3",
+        "@types/node": "^10.17.44",
+        "@types/node-red": "^1.1.1",
+        "@types/semver": "^7.3.4",
+        "@typescript-eslint/eslint-plugin": "^4.6.1",
+        "@typescript-eslint/parser": "^4.6.1",
+        "babel-eslint": "^10.1.0",
+        "eslint": "^7.13.0",
+        "eslint-config-prettier": "^6.15.0",
+        "eslint-plugin-prettier": "^3.1.4",
+        "husky": "^4.3.0",
+        "lint-staged": "^10.5.1",
+        "mocha": "^8.2.1",
+        "node-red": "^1.2.3",
+        "node-red-node-test-helper": "^0.2.5",
+        "prettier": "^2.1.2",
+        "supports-color": "^7.2.0",
+        "ts-node": "^9.0.0",
+        "typescript": "^4.0.5"
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "lint-staged"
+        }
+    },
+    "lint-staged": {
+        "*.{js,ts}": [
+            "yarn lint",
+            "yarn prettier",
+            "git add"
+        ]
+    },
+    "engines": {
+        "node": ">=10.22.1"
+    },
+    "files": [
+        "/build",
+        "/examples"
+    ]
 }

@@ -1,13 +1,13 @@
 <script type="text/javascript">
     RED.nodes.registerType('unifi-login',
     {
-        category: 'function',
+        category: 'config',
         color: '#a6bbcf',
         defaults:
         {
             name: {
                 value: '',
-                required: false
+                required: true
             },
             controllerIp: {
                 value: '',
@@ -34,20 +34,20 @@
 
 <script type="text/html" data-template-name="unifi-login">
     <div class="form-row">
-        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name">
+        <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-config-input-name" placeholder="Name">
     </div>
     <div class="form-row">
-        <label for="node-input-controllerIp"><i class="fa fa-globe"></i> Controller IP</label>
-        <input type="text" id="node-input-controllerIp" placeholder="Controller IP">
+        <label for="node-config-input-controllerIp"><i class="fa fa-globe"></i> Controller IP</label>
+        <input type="text" id="node-config-input-controllerIp" placeholder="Controller IP">
     </div>
     <div class="form-row">
-        <label for="node-input-username"><i class="fa fa-user"></i> Unifi User Name</label>
-        <input type="text" id="node-input-username" placeholder="User Name">
+        <label for="node-config-input-username"><i class="fa fa-user"></i> Unifi User Name</label>
+        <input type="text" id="node-config-input-username" placeholder="User Name">
     </div>
     <div class="form-row">
-        <label for="node-input-pass"><i class="fa fa-key"></i> Password</label>
-        <input type="password" id="node-input-pass" placeholder="Password">
+        <label for="node-config-input-pass"><i class="fa fa-key"></i> Password</label>
+        <input type="password" id="node-config-input-pass" placeholder="Password">
     </div>
 </script>
 
