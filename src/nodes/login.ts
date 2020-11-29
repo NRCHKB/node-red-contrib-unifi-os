@@ -23,8 +23,8 @@ module.exports = (RED: NodeAPI) => {
             method: 'post',
             url,
             data: {
-                username: self.config.username,
-                password: self.config.pass,
+                username: self.credentials.username,
+                password: self.credentials.password,
             },
             httpsAgent: new https.Agent({
                 rejectUnauthorized: false,
@@ -53,5 +53,10 @@ module.exports = (RED: NodeAPI) => {
             })
     }
 
-    RED.nodes.registerType('unifi-login', unifiLogin)
+    RED.nodes.registerType('unifi-login', unifiLogin, {
+        credentials: {
+            username: { type: 'text' },
+            password: { type: 'password' },
+        },
+    })
 }
