@@ -16,41 +16,84 @@ module.exports = (RED: NodeAPI) => {
         self.config = config
         self.name = self.config.name
 
-        self.status({ fill: 'yellow', shape: 'dot', text: 'connecting' })
-        const url = 'https://' + self.config.controllerIp + '/api/auth/login'
+        // self.status({ fill: 'yellow', shape: 'dot', text: 'connecting' })
 
-        Axios.request({
-            method: 'post',
-            url,
-            data: {
-                username: self.credentials.username,
-                password: self.credentials.password,
-            },
-            httpsAgent: new https.Agent({
-                rejectUnauthorized: false,
-            }),
-        })
-            .then((response: AxiosResponse) => {
-                if (response.status === 200) {
-                    self.setCookie = response.headers['set-cookie']
-                    debug('Cookie received: ' + self.setCookie)
+        self.getCreds = function () {
+            const url =
+                'https://' + self.config.controllerIp + '/api/auth/login'
 
-                    self.status({
-                        fill: 'green',
-                        shape: 'dot',
-                        text: 'connected',
-                    })
-                } else {
-                    self.status({
-                        fill: 'red',
-                        shape: 'ring',
-                        text: 'connection failed',
-                    })
-                }
+            Axios.request({
+                method: 'post',
+                url,
+                data: {
+                    username: self.credentials.username,
+                    password: self.credentials.password,
+                },
+                httpsAgent: new https.Agent({
+                    rejectUnauthorized: false,
+                }),
             })
-            .catch((reason: any) => {
-                self.error(reason)
-            })
+                .then((response: AxiosResponse) => {
+                    if (response.status === 200) {
+                        self.setCookie = response.headers['set-cookie']
+                        debug('Cookie received: ' + self.setCookie)
+
+                        self.status({
+                            fill: 'green',
+                            shape: 'dot',
+                            text: 'connected',
+                        })
+                        return true
+                    } else {
+                        self.status({
+                            fill: 'red',
+                            shape: 'ring',
+                            text: 'connection failed',
+                        })
+                        return false
+                    }
+                })
+                .catch((reason: any) => {
+                    self.error(reason)
+                })
+        }
+
+        if (!self.authenticated) {
+            self.authenticated = self.getCreds()
+        }
+
+        // Axios.request({
+        //     method: 'post',
+        //     url,
+        //     data: {
+        //         username: self.credentials.username,
+        //         password: self.credentials.password,
+        //     },
+        //     httpsAgent: new https.Agent({
+        //         rejectUnauthorized: false,
+        //     }),
+        // })
+        //     .then((response: AxiosResponse) => {
+        //         if (response.status === 200) {
+        //             self.setCookie = response.headers['set-cookie']
+        //             debug('Cookie received: ' + self.setCookie)
+
+        //             self.status({
+        //                 fill: 'green',
+        //                 shape: 'dot',
+        //                 text: 'connected',
+        //             })
+        //         } else {
+        //             self.status({
+        //                 fill: 'red',
+        //                 shape: 'ring',
+        //                 text: 'connection failed',
+        //             })
+        //         }
+        //     })
+        //     .catch((reason: any) => {
+        //         self.error(reason)
+        //     })
     }
 
     RED.nodes.registerType('unifi-login', unifiLogin, {

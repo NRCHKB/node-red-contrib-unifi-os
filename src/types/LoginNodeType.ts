@@ -3,6 +3,8 @@ import LoginNodeConfigType from './LoginNodeConfigType'
 
 type LoginNodeType = Node & {
     config: LoginNodeConfigType
+    getCreds: any
+    authenticated: boolean
     setCookie: string[] | undefined
     controllerIp: string
     credentials: {

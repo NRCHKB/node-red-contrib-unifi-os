@@ -35,6 +35,11 @@ module.exports = (RED: NodeAPI) => {
                 throw new Error('Login Node controllerIp not set!!')
             }
 
+            if (!self.loginNode.authenticated) {
+                // not authenticated, try to get creds
+                self.loginNode.getCreds()
+            }
+
             if (!self.loginNode.setCookie) {
                 throw new Error('Login Node setCookie not set!')
             }
@@ -44,6 +49,11 @@ module.exports = (RED: NodeAPI) => {
             }
 
             const inputPayload = msg.payload as LoginNodeInputPayloadType
+
+            if (inputPayload.endpoint == 'getCreds') {
+                self.loginNode.getCreds()
+                return
+            }
 
             const url =
                 'https://' +
@@ -70,10 +80,25 @@ module.exports = (RED: NodeAPI) => {
                         })
                     } else {
                         self.status({
-                            fill: 'red',
+                            fill: 'yellow',
                             shape: 'ring',
-                            text: 'request failed',
+                            text: 'request failed, fetching creds',
                         })
+                        // try to get new codes
+                        self.loginNode.authenticated = self.loginNode.getCreds()
+                        if (self.loginNode.authenticated) {
+                            self.status({
+                                fill: 'green',
+                                shape: 'dot',
+                                text: 'new creds ready',
+                            })
+                        } else {
+                            self.status({
+                                fill: 'red',
+                                shape: 'ring',
+                                text: 'new login failed',
+                            })
+                        }
                     }
                 })
                 .catch((reason: any) => {
