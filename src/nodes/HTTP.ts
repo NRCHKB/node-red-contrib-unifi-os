@@ -31,7 +31,7 @@ module.exports = (RED: NodeAPI) => {
         self.on('input', (msg) => {
             debug('Received input message: ' + JSON.stringify(msg))
 
-            if (!self.loginNode.controllerIp) {
+            if (!self.loginNode.config.controllerIp) {
                 throw new Error('Login Node controllerIp not set!')
             }
 
@@ -46,7 +46,7 @@ module.exports = (RED: NodeAPI) => {
             const inputPayload = msg.payload as LoginNodeInputPayloadType
 
             const url =
-                'https://' + self.loginNode.controllerIp + inputPayload.endpoint
+                'https://' + self.loginNode.config.controllerIp + inputPayload.endpoint
 
             Axios.request({
                 method: 'get',
