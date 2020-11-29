@@ -5,6 +5,10 @@ type LoginNodeType = Node & {
     config: LoginNodeConfigType
     setCookie: string[] | undefined
     controllerIp: string
+    credentials: {
+        username: string
+        password: string
+    }
 }
 
 export default LoginNodeType
