@@ -32,7 +32,7 @@ module.exports = (RED: NodeAPI) => {
             debug('Received input message: ' + JSON.stringify(msg))
 
             if (!self.loginNode.config.controllerIp) {
-                throw new Error('Login Node controllerIp not set!')
+                throw new Error('Login Node controllerIp not set!!')
             }
 
             if (!self.loginNode.setCookie) {
@@ -46,7 +46,9 @@ module.exports = (RED: NodeAPI) => {
             const inputPayload = msg.payload as LoginNodeInputPayloadType
 
             const url =
-                'https://' + self.loginNode.config.controllerIp + inputPayload.endpoint
+                'https://' +
+                self.loginNode.config.controllerIp +
+                inputPayload.endpoint
 
             Axios.request({
                 method: 'get',
@@ -59,6 +61,7 @@ module.exports = (RED: NodeAPI) => {
                 }),
             })
                 .then((response: AxiosResponse) => {
+                    self.send({ payload: response })
                     if (response.status === 200) {
                         self.status({
                             fill: 'green',
