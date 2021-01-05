@@ -1,6 +1,7 @@
 type Endpoints = {
     protocol: {
         base: string
+        webSocket: string
     }
     login: {
         url: string
@@ -14,6 +15,7 @@ type Endpoints = {
 export const endpoints: Endpoints = {
     protocol: {
         base: 'https://',
+        webSocket: 'wss://',
     },
     login: {
         url: '/api/auth/login',

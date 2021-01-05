@@ -22,8 +22,9 @@
     "node-red": {
         "nodes": {
             "unifi": "build/nodes/unifi.js",
-            "login": "build/nodes/AccessController.js",
-            "HTTP": "build/nodes/Request.js"
+            "AccessController": "build/nodes/AccessController.js",
+            "Request": "build/nodes/Request.js",
+            "WebSocket": "build/nodes/WebSocket.js"
         }
     },
     "author": {
@@ -41,7 +42,8 @@
     "homepage": "https://github.com/crxporter/node-red-contrib-unifi-os#readme",
     "dependencies": {
         "axios": "^0.21.1",
-        "cookie": "0.4.1"
+        "cookie": "0.4.1",
+        "ws": "^7.4.2"
     },
     "devDependencies": {
         "@types/axios": "^0.14.0",
@@ -50,6 +52,7 @@
         "@types/node": "^12.19.11",
         "@types/node-red": "^1.1.1",
         "@types/semver": "^7.3.4",
+        "@types/ws": "^7.4.0",
         "@typescript-eslint/eslint-plugin": "^4.12.0",
         "@typescript-eslint/parser": "^4.12.0",
         "babel-eslint": "^10.1.0",

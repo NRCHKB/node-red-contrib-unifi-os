@@ -135,7 +135,7 @@ module.exports = (RED: NodeAPI) => {
                 logError('Failed to pre authenticate')
             })
             .then(() => {
-                logDebug('initialized')
+                logDebug('Initialized')
                 self.initialized = true
                 logDebug('Successfully pre authenticated')
             })

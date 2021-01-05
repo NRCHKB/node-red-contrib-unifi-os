@@ -117,7 +117,7 @@ module.exports = (RED: NodeAPI) => {
             text: 'Initialized',
         })
 
-        logDebug('initialized')
+        logDebug('Initialized')
     }
 
     // Register the requestHTTP node
