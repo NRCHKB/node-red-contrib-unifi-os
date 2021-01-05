@@ -314,5 +314,5 @@ $RECYCLE.BIN/
 .idea
 .vscode
 
-# TODO: add after dev phase
-#build/**/*.js
+build/**/*.js
+.npm-upgrade.json

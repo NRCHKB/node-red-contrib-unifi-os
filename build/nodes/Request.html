@@ -1,7 +1,7 @@
 <script type="text/javascript">
-    RED.nodes.registerType('unifi-HTTP',
+    RED.nodes.registerType('unifi-request',
     {
-        category: 'function',
+        category: 'UniFi',
         color: '#a6bbcf',
         defaults:
         {
@@ -9,9 +9,9 @@
                 value: '',
                 required: false
             },
-            loginNodeId: {
+            accessControllerNodeId: {
                 value: '',
-                type:'unifi-login',
+                type:'unifi-access-controller',
                 required: true
             }
         },
@@ -20,25 +20,24 @@
         icon: "file.png",
         label: function()
         {
-            return this.name || "unifi-HTTP";
+            return this.name || "unifi-request";
         },
     });
 </script>
 
-<script type="text/html" data-template-name="unifi-HTTP">
+<script type="text/html" data-template-name="unifi-request">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
     <div class="form-row">
-        <label for="node-input-loginNodeId"><i class="fa fa-globe"></i> Controller</label>
-        <select id="node-input-loginNodeId">
+        <label for="node-input-accessControllerNodeId"><i class="fa fa-globe"></i> Controller</label>
+        <select id="node-input-accessControllerNodeId">
             <option value="">Choose...</option>
         </select>
     </div>
 </script>
 
-<script type="text/html" data-help-name="unifi-HTTP">
+<script type="text/html" data-help-name="unifi-request">
     <p>HTTP GET command sent to Unifi OS, outputs payload of data from Unifi endpoint.</p>
-
 </script>
