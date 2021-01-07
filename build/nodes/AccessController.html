@@ -2,7 +2,6 @@
     RED.nodes.registerType('unifi-access-controller',
     {
         category: 'config',
-        color: '#a6bbcf',
         defaults:
         {
             name: {
@@ -20,7 +19,8 @@
         },
         inputs: 1,
         outputs: 1,
-        icon: "file.png",
+        icon: 'unifi.png',
+        color: '#159eda',
         label: function()
         {
             return this.name || "unifi-access-controller";
