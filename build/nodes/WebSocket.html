@@ -1,0 +1,54 @@
+<script type="text/javascript">
+    RED.nodes.registerType('unifi-web-socket',
+    {
+        category: 'UniFi',
+        defaults:
+        {
+            name: {
+                value: '',
+                required: false
+            },
+            endpoint: {
+                value: '',
+                required: true
+            },
+            accessControllerNodeId: {
+                value: '',
+                type:'unifi-access-controller',
+                required: true
+            }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'unifi.png',
+        color: '#159eda',
+        label: function()
+        {
+            return this.name || "unifi-web-socket";
+        },
+        labelStyle: function() {
+            return this.name ? 'node_label_italic' : ''
+        },
+    });
+</script>
+
+<script type="text/html" data-template-name="unifi-web-socket">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-endpoint"><i class="fa fa-tag"></i> Endpoint</label>
+        <input type="text" id="node-input-endpoint" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-accessControllerNodeId"><i class="fa fa-globe"></i> Controller</label>
+        <select id="node-input-accessControllerNodeId">
+            <option value="">Choose...</option>
+        </select>
+    </div>
+</script>
+
+<script type="text/html" data-help-name="unifi-web-socket">
+    <p>HTTP GET command sent to Unifi OS, outputs payload of data from Unifi endpoint.</p>
+</script>
