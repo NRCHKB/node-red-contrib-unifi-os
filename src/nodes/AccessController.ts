@@ -72,13 +72,26 @@ module.exports = (RED: NodeAPI) => {
             })
         }
 
-        self.get = async (endpoint: string) => {
+        self.request = async (endpoint, method, data?) => {
+            if (!endpoint) {
+                Promise.reject(new Error('endpoint cannot be empty!'))
+            }
+
+            if (!method) {
+                Promise.reject(new Error('method cannot be empty!'))
+            }
+
+            console.log(method)
+
             const url =
                 endpoints.protocol.base + self.config.controllerIp + endpoint
 
             return new Promise((resolve, reject) => {
-                const get = async () => {
-                    Axios.get<UnifiResponse>(url, {
+                const axiosRequest = async () => {
+                    Axios.request<UnifiResponse>({
+                        url,
+                        method,
+                        data,
                         httpsAgent: new https.Agent({
                             rejectUnauthorized: false,
                             keepAlive: true,
@@ -95,7 +108,10 @@ module.exports = (RED: NodeAPI) => {
                                 if (error.status === 401) {
                                     self.authenticated = false
                                     self.authCookie = undefined
-                                    setTimeout(get, endpoints.login.retry)
+                                    setTimeout(
+                                        axiosRequest,
+                                        endpoints.login.retry
+                                    )
                                 }
                             }
 
@@ -107,7 +123,7 @@ module.exports = (RED: NodeAPI) => {
                             }
                         })
                 }
-                get()
+                axiosRequest()
             })
         }
 

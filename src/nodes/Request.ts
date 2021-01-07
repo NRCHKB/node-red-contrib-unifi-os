@@ -10,14 +10,14 @@ module.exports = (RED: NodeAPI) => {
         self: RequestNodeType,
         payload: any
     ): T => {
-        if (!payload?.endpoint) {
+        if (!self.config?.endpoint && !payload?.endpoint) {
             self.status({
                 fill: 'red',
                 shape: 'dot',
                 text: 'Missing endpoint',
             })
 
-            throw new Error('Invalid payload, missing endpoint')
+            throw new Error('Missing endpoint in either payload or node config')
         }
 
         return payload
@@ -87,7 +87,11 @@ module.exports = (RED: NodeAPI) => {
             )
 
             self.accessControllerNode
-                .get(inputPayload.endpoint)
+                .request(
+                    inputPayload?.endpoint || self.config.endpoint,
+                    inputPayload?.method || self.config.method,
+                    inputPayload?.data || self.config.data
+                )
                 .then((data) => {
                     self.status({
                         fill: 'green',
