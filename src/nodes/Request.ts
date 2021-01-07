@@ -10,7 +10,7 @@ module.exports = (RED: NodeAPI) => {
         self: RequestNodeType,
         payload: any
     ): T => {
-        if (!self.config.endpoint && !payload?.endpoint) {
+        if (!self.config?.endpoint && !payload?.endpoint) {
             self.status({
                 fill: 'red',
                 shape: 'dot',
@@ -87,7 +87,11 @@ module.exports = (RED: NodeAPI) => {
             )
 
             self.accessControllerNode
-                .get(self.config.endpoint || inputPayload.endpoint)
+                .request(
+                    inputPayload?.endpoint || self.config.endpoint,
+                    inputPayload?.method || self.config.method,
+                    inputPayload?.data || self.config.data
+                )
                 .then((data) => {
                     self.status({
                         fill: 'green',
