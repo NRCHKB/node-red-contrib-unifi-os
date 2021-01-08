@@ -1,31 +1,22 @@
 # node-red-contrib-unifi-os
-Unifi OS nodes with websocket connections
 
-October 11, 2020\
-Work in progress. Goal is to create a set of Node-RED nodes which will connect to Unifi OS controller and protect websockets to push information from Unifi OS into Node-RED. 
+### What is this contrib? Why is it different?
+This is an attempt to connect to Unifi OS websocket endpoints and pass all data (as JSON) from the Unifi OS into Node-RED for use in other flows.
 
-## Project Goals and Outline (November 3, 2020)
+Other node-red interfaces with Unifi controllers are compatible the older 5.x controllers and are not focused on Unifi OS. This project is being built from the ground up to be designed for Unifi OS 1.8.x running Unifi Controller 6.x. The the devs are running UDM Pro hardware, we will soon reach out to friends running UDM Base and Cloud Key networks.
 
-The goal of this contrib is to log into Unifi OS (UDM or UDM Pro) and provide websocket nodes which output JSON into the NodeRED environment. It will additionally facilitate HTTP GET and POST commands which are documented [here](https://ubntwiki.com/products/software/unifi-controller/api)
+### Current Status
+The project is a work-in-progress. As of January 7, 2021 we have published an initial version available for testing. If you would like to help, please download and try it out! It should work with UDM Pro and UDM base models (as well as any other Unifi OS controllers). If you have questions, problems, or suggestions please open an issue! Thanks!
 
-The following nodes will be included:
-- Config node for keeping authentication and holding authentication cookies
-- Websocket connection node to all known endpoints
-- HTTP GET and POST node which will use the current cookies to poll HTTP endpoints or send HTTP commands on input
+Current known working websocket endpoints:
+- `/proxy/network/wss/s/default/events`
+- `/api/ws/system`
 
+Additionally there is a `unifi-get-requestor` node which should be able to connect with HTTP GET to any of the GET endpoints [listed here](https://ubntwiki.com/products/software/unifi-controller/api).
 
-Known websocket endpoints at this point, please open an issue or PR if you know of others:
-- Events (wifi connects/disconnects) `/proxy/network/wss/s/default/events`
-- Unifi Protect (cameras) `/proxy/protect/ws/updates` (requires query after URL)
-- System (system events and equipment stats) `/api/ws/system`
+### Next Project Goals
+The big goal of this project is to have push notifications from camera events (person detection, doorbell rings, motion alerts) into Node-RED flows.
 
-Dependencies, try to have as few as possible
-- axios (for http requests)
-- ws
+Additional push notifications will include all of the Unifi data which can be found on your Unifi web interface, but in JSON for Node-RED!
 
-## Collaboration
-1. To install dependencies
-``yarn install``
-
-2. To build
-``yarn build``
+Additionally the node will have the ability to connect to any of the GET/POST/PUT endpoints [listed here](https://ubntwiki.com/products/software/unifi-controller/api). These endpoints can be used to poll specific data from the controller or send commands to make changes to your Unifi network.
