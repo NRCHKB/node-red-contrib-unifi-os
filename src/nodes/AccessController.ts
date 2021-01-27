@@ -81,8 +81,6 @@ module.exports = (RED: NodeAPI) => {
                 Promise.reject(new Error('method cannot be empty!'))
             }
 
-            console.log(method)
-
             const url =
                 endpoints.protocol.base + self.config.controllerIp + endpoint
 
