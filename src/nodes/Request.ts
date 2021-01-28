@@ -3,7 +3,7 @@ import RequestNodeConfigType from '../types/RequestNodeConfigType'
 import RequestNodeType from '../types/RequestNodeType'
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
 import AccessControllerNodeInputPayloadType from '../types/AccessControllerNodeInputPayloadType'
-import { logger } from '../logger'
+import { logger } from '@nrchkb/logger'
 
 module.exports = (RED: NodeAPI) => {
     const validateInputPayload = <T>(
@@ -70,10 +70,10 @@ module.exports = (RED: NodeAPI) => {
 
     const body = function (this: RequestNodeType) {
         const self = this
-        const [logDebug, logError] = logger(self.name, 'HTTP')
+        const log = logger('Request', self.name, self)
 
         self.on('input', (msg) => {
-            logDebug('Received input message: ' + JSON.stringify(msg))
+            log.debug('Received input message: ' + JSON.stringify(msg))
 
             self.status({
                 fill: 'grey',
@@ -99,13 +99,13 @@ module.exports = (RED: NodeAPI) => {
                         text: 'Sent',
                     })
 
-                    logDebug('Result: ' + JSON.stringify(data))
+                    log.debug(`Result: ${data}`)
                     self.send({
                         payload: data,
                     })
                 })
                 .catch((error) => {
-                    logError(error)
+                    log.error(error)
 
                     self.status({
                         fill: 'red',
@@ -121,7 +121,7 @@ module.exports = (RED: NodeAPI) => {
             text: 'Initialized',
         })
 
-        logDebug('Initialized')
+        log.debug('Initialized')
     }
 
     // Register the requestHTTP node

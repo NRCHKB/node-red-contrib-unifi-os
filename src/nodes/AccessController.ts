@@ -3,10 +3,10 @@ import AccessControllerNodeType from '../types/AccessControllerNodeType'
 import AccessControllerNodeConfigType from '../types/AccessControllerNodeConfigType'
 import Axios, { AxiosResponse } from 'axios'
 import * as https from 'https'
-import { logger } from '../logger'
 import { HttpError } from '../types/HttpError'
 import { endpoints } from '../Endpoints'
 import { UnifiResponse } from '../types/UnifiResponse'
+import { logger } from '@nrchkb/logger'
 
 module.exports = (RED: NodeAPI) => {
     const body = function (
@@ -14,16 +14,17 @@ module.exports = (RED: NodeAPI) => {
         config: AccessControllerNodeConfigType
     ) {
         const self = this
+        const log = logger('AccessController', self.name, self)
+
         RED.nodes.createNode(self, config)
         self.config = config
-        const [logDebug, logError] = logger(self.name, 'AccessController')
 
         self.initialized = false
         self.authenticated = false
 
         self.getAuthCookie = () => {
             if (self.authCookie) {
-                logDebug('Returning stored auth cookie')
+                log.debug('Returning stored auth cookie')
                 return Promise.resolve(self.authCookie)
             }
 
@@ -50,7 +51,7 @@ module.exports = (RED: NodeAPI) => {
                         .then((response: AxiosResponse) => {
                             if (response.status === 200) {
                                 self.authCookie = response.headers['set-cookie']
-                                logDebug('Cookie received: ' + self.authCookie)
+                                log.debug(`Cookie received: ${self.authCookie}`)
 
                                 self.authenticated = true
                                 resolve(self.authCookie)
@@ -146,12 +147,12 @@ module.exports = (RED: NodeAPI) => {
         self.getAuthCookie()
             .catch((error) => {
                 console.error(error)
-                logError('Failed to pre authenticate')
+                log.error('Failed to pre authenticate')
             })
             .then(() => {
-                logDebug('Initialized')
+                log.debug('Initialized')
                 self.initialized = true
-                logDebug('Successfully pre authenticated')
+                log.debug('Successfully pre authenticated')
             })
     }
 

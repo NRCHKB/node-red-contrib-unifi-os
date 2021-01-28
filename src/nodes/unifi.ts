@@ -1,28 +1,31 @@
 import Axios from 'axios'
 import { NodeAPI } from 'node-red'
-import { logger } from '../logger'
+import { logger, loggerSetup } from '@nrchkb/logger'
 import { HttpError } from '../types/HttpError'
 import { UnifiResponseMetaMsg } from '../types/UnifiResponse'
+import * as util from 'util'
+
+loggerSetup({ namespacePrefix: 'UniFi' })
 
 module.exports = (_: NodeAPI) => {
-    const [logDebug, logError, logTrace] = logger('*', 'main')
+    const log = logger()
 
     Axios.interceptors.request.use(
         (config) => {
-            logDebug('Sent request to: ' + config.url)
-            logTrace(config)
+            log.debug(`Sent request to: ${config.url}`)
+            log.trace(util.inspect(config))
             return config
         },
         function (error) {
-            logError('Failed to send request due to: ' + error)
+            log.error(`Failed to send request due to: ${error}`)
             return Promise.reject(error)
         }
     )
 
     Axios.interceptors.response.use(
         (response) => {
-            logDebug('Successful response from: ' + response.config.url)
-            logTrace(response)
+            log.debug(`Successful response from: ${response.config.url}`)
+            log.trace(util.inspect(response))
             return response
         },
         function (error) {
@@ -32,29 +35,26 @@ module.exports = (_: NodeAPI) => {
                         error?.response?.data?.meta?.msg ==
                         UnifiResponseMetaMsg.NO_SITE_CONTEXT
                     ) {
-                        logDebug('No Site Context')
+                        log.debug('No Site Context')
                         throw new Error('No Site Context')
                     }
 
-                    logError('Unauthorized: ' + error)
+                    log.error('Unauthorized: ' + error)
                     throw new HttpError('Unauthorized', 401)
                 case 403:
-                    logError('Forbidden access: ' + error)
+                    log.error('Forbidden access: ' + error)
                     throw new HttpError('Forbidden access', 403)
                 case 404:
-                    logError('Endpoint not found: ' + error)
+                    log.error('Endpoint not found: ' + error)
                     throw new HttpError('Endpoint not found', 404)
             }
 
-            logError(
-                'Wrong response from ' +
-                    error?.response?.config?.url +
-                    ' due to: ' +
-                    error
+            log.error(
+                `Wrong response from ${error?.response?.config?.url} due to: ${error}`
             )
             return Promise.reject(error)
         }
     )
 
-    logDebug('Initialized')
+    log.debug('Initialized')
 }
