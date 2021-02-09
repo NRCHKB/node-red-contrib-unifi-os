@@ -81,7 +81,7 @@ module.exports = (_: NodeAPI) => {
                         unifiResponse?.meta?.msg ==
                         UnifiResponseMetaMsg.INVALID_PAYLOAD
                     ) {
-                        log.debug(
+                        log.error(
                             `Invalid Payload ${unifiResponse?.meta?.validationError?.field} ${unifiResponse?.meta?.validationError?.pattern}`
                         )
                         throw new Error('Invalid Payload')
@@ -94,7 +94,7 @@ module.exports = (_: NodeAPI) => {
                         unifiResponse?.meta?.msg ==
                         UnifiResponseMetaMsg.NO_SITE_CONTEXT
                     ) {
-                        log.debug('No Site Context')
+                        log.error('No Site Context')
                         throw new Error('No Site Context')
                     }
 
