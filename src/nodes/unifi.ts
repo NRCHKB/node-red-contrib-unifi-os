@@ -12,7 +12,50 @@ module.exports = (_: NodeAPI) => {
 
     Axios.interceptors.request.use(
         (config) => {
-            log.debug(`Sent request to: ${config.url}`)
+            log.debug(`Sending request to: ${config.url}`)
+
+            const contentLength = config.data?.toString().length ?? 0
+            if (contentLength > 0) {
+                config.headers['Content-Length'] = contentLength
+            }
+
+            if (
+                config.headers.cookie &&
+                config.method?.toLowerCase() !== 'get'
+            ) {
+                // Create x-csrf-token
+                const composedCookie: { [key: string]: string } = {}
+
+                ;(config.headers.cookie[0] as string)
+                    .replace(/ /g, '')
+                    .split(';')
+                    .forEach((c) => {
+                        if (c.includes('=')) {
+                            const [key, value] = c.split('=')
+                            composedCookie[key] = value
+                        } else {
+                            composedCookie[c] = ''
+                        }
+                    })
+
+                if ('TOKEN' in composedCookie) {
+                    const [, jwtEncodedBody] = composedCookie['TOKEN'].split(
+                        '.'
+                    )
+
+                    if (jwtEncodedBody) {
+                        const buffer = Buffer.from(jwtEncodedBody, 'base64')
+                        const { csrfToken } = JSON.parse(
+                            buffer.toString('ascii')
+                        )
+
+                        if (csrfToken) {
+                            config.headers['x-csrf-token'] = csrfToken
+                        }
+                    }
+                }
+            }
+
             log.trace(util.inspect(config))
             return config
         },
@@ -52,6 +95,7 @@ module.exports = (_: NodeAPI) => {
             log.error(
                 `Wrong response from ${error?.response?.config?.url} due to: ${error}`
             )
+            log.trace(util.inspect(error))
             return Promise.reject(error)
         }
     )

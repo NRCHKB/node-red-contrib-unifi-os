@@ -99,6 +99,8 @@ module.exports = (RED: NodeAPI) => {
                             cookie: await self
                                 .getAuthCookie()
                                 .then((value) => value),
+                            'Content-Type': 'application/json',
+                            Accept: 'application/json',
                         },
                         withCredentials: true,
                     })

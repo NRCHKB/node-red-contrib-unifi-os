@@ -4,6 +4,7 @@ import RequestNodeType from '../types/RequestNodeType'
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
 import AccessControllerNodeInputPayloadType from '../types/AccessControllerNodeInputPayloadType'
 import { logger } from '@nrchkb/logger'
+import util from 'util'
 
 module.exports = (RED: NodeAPI) => {
     const validateInputPayload = <T>(
@@ -98,8 +99,8 @@ module.exports = (RED: NodeAPI) => {
                         shape: 'dot',
                         text: 'Sent',
                     })
-
-                    log.debug(`Result: ${data}`)
+                    log.debug('Result:')
+                    log.trace(util.inspect(data))
                     self.send({
                         payload: data,
                     })
