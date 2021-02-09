@@ -14,7 +14,7 @@ module.exports = (RED: NodeAPI) => {
         config: AccessControllerNodeConfigType
     ) {
         const self = this
-        const log = logger('AccessController', self.name, self)
+        const log = logger('UniFi', 'AccessController', self.name, self)
 
         RED.nodes.createNode(self, config)
         self.config = config

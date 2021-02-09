@@ -71,7 +71,7 @@ module.exports = (RED: NodeAPI) => {
 
     const body = function (this: RequestNodeType) {
         const self = this
-        const log = logger('Request', self.name, self)
+        const log = logger('UniFi', 'Request', self.name, self)
 
         self.on('input', (msg) => {
             log.debug('Received input message: ' + JSON.stringify(msg))

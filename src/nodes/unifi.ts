@@ -1,14 +1,12 @@
 import Axios from 'axios'
 import { NodeAPI } from 'node-red'
-import { logger, loggerSetup } from '@nrchkb/logger'
+import { logger } from '@nrchkb/logger'
 import { HttpError } from '../types/HttpError'
-import { UnifiResponseMetaMsg } from '../types/UnifiResponse'
+import { UnifiResponse, UnifiResponseMetaMsg } from '../types/UnifiResponse'
 import * as util from 'util'
 
-loggerSetup({ namespacePrefix: 'UniFi' })
-
 module.exports = (_: NodeAPI) => {
-    const log = logger()
+    const log = logger('UniFi')
 
     Axios.interceptors.request.use(
         (config) => {
@@ -72,10 +70,28 @@ module.exports = (_: NodeAPI) => {
             return response
         },
         function (error) {
+            const unifiResponse = error?.response?.data as UnifiResponse
+
+            log.debug(`Bad response from: ${error?.response?.config?.url}`)
+            log.trace(util.inspect(error?.response))
+
             switch (error?.response?.status) {
+                case 400:
+                    if (
+                        unifiResponse?.meta?.msg ==
+                        UnifiResponseMetaMsg.INVALID_PAYLOAD
+                    ) {
+                        log.debug(
+                            `Invalid Payload ${unifiResponse?.meta?.validationError?.field} ${unifiResponse?.meta?.validationError?.pattern}`
+                        )
+                        throw new Error('Invalid Payload')
+                    }
+
+                    log.error('Invalid Payload: ' + error)
+                    throw new HttpError('Invalid Payload', 403)
                 case 401:
                     if (
-                        error?.response?.data?.meta?.msg ==
+                        unifiResponse?.meta?.msg ==
                         UnifiResponseMetaMsg.NO_SITE_CONTEXT
                     ) {
                         log.debug('No Site Context')
@@ -92,9 +108,6 @@ module.exports = (_: NodeAPI) => {
                     throw new HttpError('Endpoint not found', 404)
             }
 
-            log.error(
-                `Wrong response from ${error?.response?.config?.url} due to: ${error}`
-            )
             log.trace(util.inspect(error))
             return Promise.reject(error)
         }

@@ -8,7 +8,7 @@ import { logger } from '@nrchkb/logger'
 
 module.exports = (RED: NodeAPI) => {
     const setupWebsocket = async (self: WebSocketNodeType) => {
-        const log = logger('WebSocket', self.name, self)
+        const log = logger('UniFi', 'WebSocket', self.name, self)
 
         const url =
             endpoints.protocol.webSocket +
@@ -149,7 +149,7 @@ module.exports = (RED: NodeAPI) => {
 
     const body = function (this: WebSocketNodeType) {
         const self = this
-        const log = logger('WebSocket', self.name, self)
+        const log = logger('UniFi', 'WebSocket', self.name, self)
 
         setupWebsocket(self)
 
