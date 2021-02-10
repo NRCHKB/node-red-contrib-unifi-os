@@ -3,10 +3,10 @@ import AccessControllerNodeType from '../types/AccessControllerNodeType'
 import AccessControllerNodeConfigType from '../types/AccessControllerNodeConfigType'
 import Axios, { AxiosResponse } from 'axios'
 import * as https from 'https'
-import { logger } from '../logger'
 import { HttpError } from '../types/HttpError'
 import { endpoints } from '../Endpoints'
 import { UnifiResponse } from '../types/UnifiResponse'
+import { logger } from '@nrchkb/logger'
 
 module.exports = (RED: NodeAPI) => {
     const body = function (
@@ -14,16 +14,17 @@ module.exports = (RED: NodeAPI) => {
         config: AccessControllerNodeConfigType
     ) {
         const self = this
+        const log = logger('UniFi', 'AccessController', self.name, self)
+
         RED.nodes.createNode(self, config)
         self.config = config
-        const [logDebug, logError] = logger(self.name, 'AccessController')
 
         self.initialized = false
         self.authenticated = false
 
         self.getAuthCookie = () => {
             if (self.authCookie) {
-                logDebug('Returning stored auth cookie')
+                log.debug('Returning stored auth cookie')
                 return Promise.resolve(self.authCookie)
             }
 
@@ -49,8 +50,9 @@ module.exports = (RED: NodeAPI) => {
                     )
                         .then((response: AxiosResponse) => {
                             if (response.status === 200) {
-                                self.authCookie = response.headers['set-cookie']
-                                logDebug('Cookie received: ' + self.authCookie)
+                                self.authCookie =
+                                    response.headers['set-cookie']?.[0]
+                                log.debug(`Cookie received: ${self.authCookie}`)
 
                                 self.authenticated = true
                                 resolve(self.authCookie)
@@ -72,7 +74,7 @@ module.exports = (RED: NodeAPI) => {
             })
         }
 
-        self.request = async (endpoint, method, data?) => {
+        self.request = async (nodeId, endpoint, method, data?) => {
             if (!endpoint) {
                 Promise.reject(new Error('endpoint cannot be empty!'))
             }
@@ -80,8 +82,6 @@ module.exports = (RED: NodeAPI) => {
             if (!method) {
                 Promise.reject(new Error('method cannot be empty!'))
             }
-
-            console.log(method)
 
             const url =
                 endpoints.protocol.base + self.config.controllerIp + endpoint
@@ -100,6 +100,9 @@ module.exports = (RED: NodeAPI) => {
                             cookie: await self
                                 .getAuthCookie()
                                 .then((value) => value),
+                            'Content-Type': 'application/json',
+                            Accept: 'application/json',
+                            'X-Request-ID': nodeId,
                         },
                         withCredentials: true,
                     })
@@ -148,12 +151,12 @@ module.exports = (RED: NodeAPI) => {
         self.getAuthCookie()
             .catch((error) => {
                 console.error(error)
-                logError('Failed to pre authenticate')
+                log.error('Failed to pre authenticate')
             })
             .then(() => {
-                logDebug('Initialized')
+                log.debug('Initialized')
                 self.initialized = true
-                logDebug('Successfully pre authenticated')
+                log.debug('Successfully pre authenticated')
             })
     }
 

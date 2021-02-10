@@ -1,60 +1,112 @@
 import Axios from 'axios'
 import { NodeAPI } from 'node-red'
-import { logger } from '../logger'
+import { logger } from '@nrchkb/logger'
 import { HttpError } from '../types/HttpError'
-import { UnifiResponseMetaMsg } from '../types/UnifiResponse'
+import { UnifiResponse, UnifiResponseMetaMsg } from '../types/UnifiResponse'
+import * as util from 'util'
+import { cookieToObject } from '../lib/cookieHelper'
 
-module.exports = (_: NodeAPI) => {
-    const [logDebug, logError, logTrace] = logger('*', 'main')
+module.exports = (RED: NodeAPI) => {
+    const log = logger('UniFi')
 
     Axios.interceptors.request.use(
         (config) => {
-            logDebug('Sent request to: ' + config.url)
-            logTrace(config)
+            log.debug(`Sending request to: ${config.url}`)
+
+            const contentLength = config.data?.toString().length ?? 0
+            if (contentLength > 0) {
+                config.headers['Content-Length'] = contentLength
+            }
+
+            if (
+                config.headers.cookie &&
+                config.method?.toLowerCase() !== 'get'
+            ) {
+                // Create x-csrf-token
+                const composedCookie = cookieToObject(config.headers.cookie)
+
+                if ('TOKEN' in composedCookie) {
+                    const [, jwtEncodedBody] = composedCookie['TOKEN'].split(
+                        '.'
+                    )
+
+                    if (jwtEncodedBody) {
+                        const buffer = Buffer.from(jwtEncodedBody, 'base64')
+                        const { csrfToken } = JSON.parse(
+                            buffer.toString('ascii')
+                        )
+
+                        if (csrfToken) {
+                            config.headers['x-csrf-token'] = csrfToken
+                        }
+                    }
+                }
+            }
+
+            log.trace(util.inspect(config))
             return config
         },
         function (error) {
-            logError('Failed to send request due to: ' + error)
+            log.error(`Failed to send request due to: ${error}`)
             return Promise.reject(error)
         }
     )
 
     Axios.interceptors.response.use(
         (response) => {
-            logDebug('Successful response from: ' + response.config.url)
-            logTrace(response)
+            log.debug(`Successful response from: ${response.config.url}`)
+            log.trace(util.inspect(response))
             return response
         },
         function (error) {
+            const nodeId = error?.response?.config?.headers?.['X-Request-ID']
+            const relatedNode = RED.nodes.getNode(nodeId)
+
+            const unifiResponse = error?.response?.data as UnifiResponse
+
+            log.error(
+                `Bad response from: ${error?.response?.config?.url}`,
+                true,
+                relatedNode
+            )
+            log.trace(util.inspect(error?.response))
+
             switch (error?.response?.status) {
+                case 400:
+                    if (
+                        unifiResponse?.meta?.msg ==
+                        UnifiResponseMetaMsg.INVALID_PAYLOAD
+                    ) {
+                        const msg = `Invalid Payload ${unifiResponse?.meta?.validationError?.field} ${unifiResponse?.meta?.validationError?.pattern}`
+                        log.error(msg)
+                        throw new Error(msg)
+                    }
+
+                    log.error('Invalid Payload: ' + error, true, relatedNode)
+                    throw new HttpError('Invalid Payload', 403)
                 case 401:
                     if (
-                        error?.response?.data?.meta?.msg ==
+                        unifiResponse?.meta?.msg ==
                         UnifiResponseMetaMsg.NO_SITE_CONTEXT
                     ) {
-                        logDebug('No Site Context')
+                        log.error('No Site Context')
                         throw new Error('No Site Context')
                     }
 
-                    logError('Unauthorized: ' + error)
+                    log.error('Unauthorized: ' + error, true, relatedNode)
                     throw new HttpError('Unauthorized', 401)
                 case 403:
-                    logError('Forbidden access: ' + error)
+                    log.error('Forbidden access: ' + error, true, relatedNode)
                     throw new HttpError('Forbidden access', 403)
                 case 404:
-                    logError('Endpoint not found: ' + error)
+                    log.error('Endpoint not found: ' + error, true, relatedNode)
                     throw new HttpError('Endpoint not found', 404)
             }
 
-            logError(
-                'Wrong response from ' +
-                    error?.response?.config?.url +
-                    ' due to: ' +
-                    error
-            )
+            log.trace(util.inspect(error))
             return Promise.reject(error)
         }
     )
 
-    logDebug('Initialized')
+    log.debug('Initialized')
 }

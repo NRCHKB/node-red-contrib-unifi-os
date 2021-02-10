@@ -1,5 +1,6 @@
 export enum UnifiResponseMetaMsg {
     NO_SITE_CONTEXT = 'api.err.NoSiteContext',
+    INVALID_PAYLOAD = 'api.err.InvalidPayload',
 }
 
 export enum UnifiResponseMetaRc {
@@ -7,8 +8,15 @@ export enum UnifiResponseMetaRc {
     OK = 'ok',
 }
 
+export type ValidationError = {
+    field?: string
+    pattern?: string
+    msg?: UnifiResponseMetaMsg
+}
+
 export type Meta = {
-    rc: string
+    rc: UnifiResponseMetaRc
+    validationError?: ValidationError
     msg?: string
 }
 

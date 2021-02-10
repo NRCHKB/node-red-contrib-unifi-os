@@ -2,13 +2,13 @@ import { NodeAPI } from 'node-red'
 import WebSocketNodeConfigType from '../types/WebSocketNodeConfigType'
 import WebSocketNodeType from '../types/WebSocketNodeType'
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
-import { logger } from '../logger'
 import WebSocket from 'ws'
 import { endpoints } from '../Endpoints'
+import { logger } from '@nrchkb/logger'
 
 module.exports = (RED: NodeAPI) => {
     const setupWebsocket = async (self: WebSocketNodeType) => {
-        const [logDebug, logError, logTrace] = logger(self.name, 'WebSocket')
+        const log = logger('UniFi', 'WebSocket', self.name, self)
 
         const url =
             endpoints.protocol.webSocket +
@@ -26,7 +26,7 @@ module.exports = (RED: NodeAPI) => {
             })
 
             if (!self.ws) {
-                logTrace(
+                log.trace(
                     'Unable to connect to system events API. Will retry again later.'
                 )
 
@@ -43,7 +43,7 @@ module.exports = (RED: NodeAPI) => {
         await connectWebSocket()
 
         self.ws.on('open', function open() {
-            logDebug('Connection open')
+            log.debug('Connection open')
 
             self.status({
                 fill: 'green',
@@ -78,7 +78,7 @@ module.exports = (RED: NodeAPI) => {
         })
 
         self.ws.on('error', (error) => {
-            logError(error)
+            log.error(`${error}`)
 
             self.status({
                 fill: 'red',
@@ -88,7 +88,7 @@ module.exports = (RED: NodeAPI) => {
         })
 
         self.ws.on('close', () => {
-            logDebug('Connection closed')
+            log.debug('Connection closed')
 
             self.status({
                 fill: 'yellow',
@@ -149,7 +149,7 @@ module.exports = (RED: NodeAPI) => {
 
     const body = function (this: WebSocketNodeType) {
         const self = this
-        const [logDebug] = logger(self.name, 'WebSocket')
+        const log = logger('UniFi', 'WebSocket', self.name, self)
 
         setupWebsocket(self)
 
@@ -159,7 +159,7 @@ module.exports = (RED: NodeAPI) => {
             text: 'Initialized',
         })
 
-        logDebug('Initialized')
+        log.debug('Initialized')
     }
 
     // Register the requestHTTP node
