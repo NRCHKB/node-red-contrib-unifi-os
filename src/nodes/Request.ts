@@ -89,6 +89,7 @@ module.exports = (RED: NodeAPI) => {
 
             self.accessControllerNode
                 .request(
+                    self.id,
                     inputPayload?.endpoint || self.config.endpoint,
                     inputPayload?.method || self.config.method || 'GET',
                     inputPayload?.data || self.config.data

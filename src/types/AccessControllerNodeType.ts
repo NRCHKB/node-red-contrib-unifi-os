@@ -5,9 +5,10 @@ import { UnifiResponse } from './UnifiResponse'
 
 type AccessControllerNodeType = Node & {
     config: AccessControllerNodeConfigType
-    getAuthCookie: () => Promise<string[] | undefined>
-    authCookie: string[] | undefined // Authorization TOKEN cookie
+    getAuthCookie: () => Promise<string | undefined>
+    authCookie: string | undefined // Authorization TOKEN cookie
     request: (
+        nodeId: string,
         endpoint?: string,
         method?: Method,
         data?: any

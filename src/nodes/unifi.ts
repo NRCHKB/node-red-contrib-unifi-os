@@ -4,8 +4,9 @@ import { logger } from '@nrchkb/logger'
 import { HttpError } from '../types/HttpError'
 import { UnifiResponse, UnifiResponseMetaMsg } from '../types/UnifiResponse'
 import * as util from 'util'
+import { cookieToObject } from '../lib/cookieHelper'
 
-module.exports = (_: NodeAPI) => {
+module.exports = (RED: NodeAPI) => {
     const log = logger('UniFi')
 
     Axios.interceptors.request.use(
@@ -22,19 +23,7 @@ module.exports = (_: NodeAPI) => {
                 config.method?.toLowerCase() !== 'get'
             ) {
                 // Create x-csrf-token
-                const composedCookie: { [key: string]: string } = {}
-
-                ;(config.headers.cookie[0] as string)
-                    .replace(/ /g, '')
-                    .split(';')
-                    .forEach((c) => {
-                        if (c.includes('=')) {
-                            const [key, value] = c.split('=')
-                            composedCookie[key] = value
-                        } else {
-                            composedCookie[c] = ''
-                        }
-                    })
+                const composedCookie = cookieToObject(config.headers.cookie)
 
                 if ('TOKEN' in composedCookie) {
                     const [, jwtEncodedBody] = composedCookie['TOKEN'].split(
@@ -70,9 +59,16 @@ module.exports = (_: NodeAPI) => {
             return response
         },
         function (error) {
+            const nodeId = error?.response?.config?.headers?.['X-Request-ID']
+            const relatedNode = RED.nodes.getNode(nodeId)
+
             const unifiResponse = error?.response?.data as UnifiResponse
 
-            log.debug(`Bad response from: ${error?.response?.config?.url}`)
+            log.error(
+                `Bad response from: ${error?.response?.config?.url}`,
+                true,
+                relatedNode
+            )
             log.trace(util.inspect(error?.response))
 
             switch (error?.response?.status) {
@@ -81,13 +77,12 @@ module.exports = (_: NodeAPI) => {
                         unifiResponse?.meta?.msg ==
                         UnifiResponseMetaMsg.INVALID_PAYLOAD
                     ) {
-                        log.error(
-                            `Invalid Payload ${unifiResponse?.meta?.validationError?.field} ${unifiResponse?.meta?.validationError?.pattern}`
-                        )
-                        throw new Error('Invalid Payload')
+                        const msg = `Invalid Payload ${unifiResponse?.meta?.validationError?.field} ${unifiResponse?.meta?.validationError?.pattern}`
+                        log.error(msg)
+                        throw new Error(msg)
                     }
 
-                    log.error('Invalid Payload: ' + error)
+                    log.error('Invalid Payload: ' + error, true, relatedNode)
                     throw new HttpError('Invalid Payload', 403)
                 case 401:
                     if (
@@ -98,13 +93,13 @@ module.exports = (_: NodeAPI) => {
                         throw new Error('No Site Context')
                     }
 
-                    log.error('Unauthorized: ' + error)
+                    log.error('Unauthorized: ' + error, true, relatedNode)
                     throw new HttpError('Unauthorized', 401)
                 case 403:
-                    log.error('Forbidden access: ' + error)
+                    log.error('Forbidden access: ' + error, true, relatedNode)
                     throw new HttpError('Forbidden access', 403)
                 case 404:
-                    log.error('Endpoint not found: ' + error)
+                    log.error('Endpoint not found: ' + error, true, relatedNode)
                     throw new HttpError('Endpoint not found', 404)
             }
 

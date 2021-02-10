@@ -50,7 +50,8 @@ module.exports = (RED: NodeAPI) => {
                     )
                         .then((response: AxiosResponse) => {
                             if (response.status === 200) {
-                                self.authCookie = response.headers['set-cookie']
+                                self.authCookie =
+                                    response.headers['set-cookie']?.[0]
                                 log.debug(`Cookie received: ${self.authCookie}`)
 
                                 self.authenticated = true
@@ -73,7 +74,7 @@ module.exports = (RED: NodeAPI) => {
             })
         }
 
-        self.request = async (endpoint, method, data?) => {
+        self.request = async (nodeId, endpoint, method, data?) => {
             if (!endpoint) {
                 Promise.reject(new Error('endpoint cannot be empty!'))
             }
@@ -101,6 +102,7 @@ module.exports = (RED: NodeAPI) => {
                                 .then((value) => value),
                             'Content-Type': 'application/json',
                             Accept: 'application/json',
+                            'X-Request-ID': nodeId,
                         },
                         withCredentials: true,
                     })
