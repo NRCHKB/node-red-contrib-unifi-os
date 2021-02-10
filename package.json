@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-unifi-os",
-  "version": "0.1.7-dev.0",
+  "version": "0.1.7",
   "description": "Nodes to access UniFi data using endpoints and websockets",
   "main": "build/nodes/unifi.js",
   "scripts": {
@@ -8,7 +8,8 @@
     "clean": "rimraf build/**/*.js",
     "test": "yarn build && mocha -r ts-node/register './src/**/*.test.[tj]s' --exit",
     "prettier": "prettier --write src/**/*.{js,ts}",
-    "lint": "eslint src/**/*.{js,ts} --fix"
+    "lint": "eslint src/**/*.{js,ts} --fix",
+    "husky-run": "lint-staged"
   },
   "repository": {
     "type": "git",
