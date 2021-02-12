@@ -7,7 +7,9 @@ import { endpoints } from '../Endpoints'
 import { logger } from '@nrchkb/logger'
 
 module.exports = (RED: NodeAPI) => {
-    const setupWebsocket = async (self: WebSocketNodeType) => {
+    const setupWebsocket = async (
+        self: WebSocketNodeType
+    ): Promise<WebSocket> => {
         const log = logger('UniFi', 'WebSocket', self.name, self)
 
         const url =
@@ -151,7 +153,21 @@ module.exports = (RED: NodeAPI) => {
         const self = this
         const log = logger('UniFi', 'WebSocket', self.name, self)
 
-        setupWebsocket(self)
+        const wsPromise = setupWebsocket(self)
+
+        self.on('close', () => {
+            self.status({
+                fill: 'grey',
+                shape: 'dot',
+                text: 'Disconnecting',
+            })
+
+            log.debug('Disconnecting')
+
+            wsPromise.then((ws) => {
+                ws.close()
+            })
+        })
 
         self.status({
             fill: 'green',
