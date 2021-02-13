@@ -52,7 +52,7 @@ module.exports = (RED: NodeAPI) => {
                             if (response.status === 200) {
                                 self.authCookie =
                                     response.headers['set-cookie']?.[0]
-                                log.debug(`Cookie received: ${self.authCookie}`)
+                                log.trace(`Cookie received: ${self.authCookie}`)
 
                                 self.authenticated = true
                                 resolve(self.authCookie)

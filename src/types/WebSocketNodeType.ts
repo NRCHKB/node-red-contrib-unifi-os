@@ -6,7 +6,7 @@ import WebSocket from 'ws'
 type WebSocketNodeType = Node & {
     config: WebSocketNodeConfigType
     accessControllerNode: AccessControllerNodeType
-    ws: WebSocket
+    ws?: WebSocket
 }
 
 export default WebSocketNodeType
