@@ -1,10 +1,12 @@
 import Axios from 'axios'
 import { NodeAPI } from 'node-red'
-import { logger } from '@nrchkb/logger'
+import { logger, loggerSetup } from '@nrchkb/logger'
 import { HttpError } from '../types/HttpError'
 import { UnifiResponse, UnifiResponseMetaMsg } from '../types/UnifiResponse'
 import * as util from 'util'
 import { cookieToObject } from '../lib/cookieHelper'
+
+loggerSetup({ timestampEnabled: 'UniFi' })
 
 module.exports = (RED: NodeAPI) => {
     const log = logger('UniFi')
