@@ -104,6 +104,7 @@ module.exports = (RED: NodeAPI) => {
                     log.trace(util.inspect(data))
                     self.send({
                         payload: data,
+                        inputMsg: msg,
                     })
                 })
                 .catch((error) => {
