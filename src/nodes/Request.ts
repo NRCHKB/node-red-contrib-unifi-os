@@ -74,7 +74,7 @@ module.exports = (RED: NodeAPI) => {
         const log = logger('UniFi', 'Request', self.name, self)
 
         self.on('input', (msg) => {
-            log.debug('Received input message: ' + JSON.stringify(msg))
+            log.debug('Received input message: ' + util.inspect(msg))
 
             self.status({
                 fill: 'grey',
@@ -128,4 +128,6 @@ module.exports = (RED: NodeAPI) => {
 
     // Register the requestHTTP node
     RED.nodes.registerType('unifi-request', init)
+
+    logger('UniFi', 'Request').debug('Type registered')
 }

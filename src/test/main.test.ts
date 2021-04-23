@@ -5,93 +5,17 @@ const helper = require('node-red-node-test-helper')
 
 const unifi = require('../../build/nodes/unifi')
 const unifiRequestNode = require('../../build/nodes/Request')
-const unifiWebSocketNode = require('../../build/nodes/WebSocket')
 const unifiAccessControllerNode = require('../../build/nodes/AccessController')
 
-helper.init(require.resolve('node-red'))
+const nock = require('nock')
+nock('https://localhost')
+    .persist()
+    .post('/api/auth/login')
+    .reply(200, 'Ok', { 'set-cookie': ['COOKIE'] })
+nock('https://localhost').persist().post('/api/logout').reply(200)
+nock('https://localhost').persist().get('/test').reply(200)
 
-const flow = [
-    {
-        id: 'i1',
-        type: 'inject',
-        z: 'fe238252.c769e',
-        name: '',
-        props: [
-            {
-                p: 'payload.endpoint',
-                v: '/proxy/network/api/s/default/stat/health',
-                vt: 'str',
-            },
-        ],
-        repeat: '',
-        crontab: '',
-        once: false,
-        onceDelay: 0.1,
-        topic: '',
-        x: 150,
-        y: 320,
-        wires: [['r1']],
-    },
-    {
-        id: 'd2',
-        type: 'debug',
-        z: 'fe238252.c769e',
-        name: '',
-        active: true,
-        tosidebar: true,
-        console: false,
-        tostatus: false,
-        complete: 'false',
-        statusVal: '',
-        statusType: 'auto',
-        x: 510,
-        y: 320,
-        wires: [],
-    },
-    {
-        id: 'r1',
-        type: 'unifi-request',
-        z: 'fe238252.c769e',
-        name: 'UDM Pro Requester',
-        accessControllerNodeId: 'ac1',
-        x: 320,
-        y: 320,
-        wires: [['d2']],
-    },
-    {
-        id: 'ws1',
-        type: 'unifi-web-socket',
-        z: 'fe238252.c769e',
-        name: 'WebSocket',
-        endpoint: '/api/ws/system',
-        accessControllerNodeId: 'ac1',
-        x: 290,
-        y: 380,
-        wires: [['d1']],
-    },
-    {
-        id: 'd1',
-        type: 'debug',
-        z: 'fe238252.c769e',
-        name: '',
-        active: false,
-        tosidebar: true,
-        console: false,
-        tostatus: false,
-        complete: 'false',
-        statusVal: '',
-        statusType: 'auto',
-        x: 510,
-        y: 380,
-        wires: [],
-    },
-    {
-        id: 'ac1',
-        type: 'unifi-access-controller',
-        name: 'UDM Pro',
-        controllerIp: '192.168.1.1',
-    },
-]
+helper.init(require.resolve('node-red'))
 
 describe('UniFi Node', function () {
     this.timeout(30000)
@@ -105,17 +29,28 @@ describe('UniFi Node', function () {
         helper.stopServer(done)
     })
 
-    it('just done', function (done) {
+    it('Initialize', function (done) {
         helper
             .load(
+                [unifi, unifiAccessControllerNode, unifiRequestNode],
                 [
-                    unifi,
-                    unifiAccessControllerNode,
-                    unifiRequestNode,
-                    unifiWebSocketNode,
+                    {
+                        id: 'r1',
+                        type: 'unifi-request',
+                        name: 'UDM Pro Requester',
+                        endpoint: '/test',
+                        accessControllerNodeId: 'ac1',
+                    },
+                    {
+                        id: 'ac1',
+                        type: 'unifi-access-controller',
+                        name: 'UDM Pro',
+                        controllerIp: 'localhost',
+                    },
                 ],
-                flow,
                 function () {
+                    helper.getNode('r1')
+                    helper.getNode('ac1')
                     done()
                 }
             )

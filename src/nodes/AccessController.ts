@@ -166,4 +166,6 @@ module.exports = (RED: NodeAPI) => {
             password: { type: 'password' },
         },
     })
+
+    logger('UniFi', 'AccessController').debug('Type registered')
 }
