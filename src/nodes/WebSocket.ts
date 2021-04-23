@@ -205,4 +205,6 @@ module.exports = (RED: NodeAPI) => {
 
     // Register the requestHTTP node
     RED.nodes.registerType('unifi-web-socket', init)
+
+    logger('UniFi', 'WebSocket').debug('Type registered')
 }
