@@ -150,6 +150,17 @@ module.exports = (RED: NodeAPI) => {
                         }`
                     )
 
+                    self.send([
+                        null,
+                        {
+                            payload: {
+                                code,
+                                reason,
+                                url,
+                            },
+                        },
+                    ])
+
                     self.status({
                         fill: 'yellow',
                         shape: 'dot',

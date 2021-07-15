@@ -26,7 +26,18 @@
                     }
                 },
             inputs: 1,
-            outputs: 1,
+            outputs: 2,
+            outputLabels: function(index) {
+                if (index === 0) {
+                    return 'data'
+                }
+
+                if (index === 1) {
+                    return 'error'
+                }
+
+                return ''
+            },
             icon: 'unifi.png',
             color: '#159eda',
             label: function () {
