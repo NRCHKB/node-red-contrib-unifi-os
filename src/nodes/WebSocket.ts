@@ -5,6 +5,9 @@ import AccessControllerNodeType from '../types/AccessControllerNodeType'
 import WebSocket from 'ws'
 import { endpoints } from '../Endpoints'
 import { logger } from '@nrchkb/logger'
+import util from 'util'
+import WebSocketNodeInputPayloadType from '../types/WebSocketNodeInputPayloadType'
+import { ProtectApiUpdates } from '../lib/ProtectApiUpdates'
 
 /**
  * DEFAULT_RECONNECT_TIMEOUT is to wait until next try to connect web socket in case of error or server side closed socket (for example UniFi restart)
@@ -12,13 +15,41 @@ import { logger } from '@nrchkb/logger'
 const DEFAULT_RECONNECT_TIMEOUT = 90000
 
 module.exports = (RED: NodeAPI) => {
-    const setupWebsocket = async (self: WebSocketNodeType) => {
+    const validateInputPayload = <T>(
+        self: WebSocketNodeType,
+        payload: any
+    ): T => {
+        if (!self.config?.endpoint && !payload?.endpoint) {
+            self.status({
+                fill: 'red',
+                shape: 'dot',
+                text: 'Missing endpoint',
+            })
+
+            throw new Error('Missing endpoint in either payload or node config')
+        }
+
+        return payload
+    }
+
+    const stopWebsocket = async (
+        self: WebSocketNodeType,
+        action: string,
+        callback: () => void
+    ): Promise<void> => {
+        self.ws?.close(1000, `Node ${action}`)
+        self.ws?.terminate()
+        self.ws = undefined
+        callback()
+    }
+
+    const setupWebsocket = async (self: WebSocketNodeType): Promise<void> => {
         const log = logger('UniFi', 'WebSocket', self.name, self)
 
         const url =
             endpoints.protocol.webSocket +
             self.accessControllerNode.config.controllerIp +
-            self.config.endpoint
+            self.endpoint
 
         const connectWebSocket = async () => {
             self.ws = new WebSocket(url, {
@@ -62,11 +93,28 @@ module.exports = (RED: NodeAPI) => {
 
                 let tick = false
                 self.ws.on('message', (data) => {
-                    const parsedData = JSON.parse(data.toString())
+                    try {
+                        const parsedData = JSON.parse(data.toString())
 
-                    self.send({
-                        payload: parsedData,
-                    })
+                        self.send({
+                            payload: parsedData,
+                        })
+                    } catch (_) {
+                        // Let's try to decode packet
+                        try {
+                            const protectApiUpdate =
+                                ProtectApiUpdates.decodeUpdatePacket(
+                                    log,
+                                    data as Buffer
+                                )
+
+                            self.send({
+                                payload: protectApiUpdate,
+                            })
+                        } catch (error) {
+                            log.error(error)
+                        }
+                    }
 
                     if (tick) {
                         self.status({
@@ -177,7 +225,25 @@ module.exports = (RED: NodeAPI) => {
         const self = this
         const log = logger('UniFi', 'WebSocket', self.name, self)
 
+        self.endpoint = self.config.endpoint
         setupWebsocket(self)
+
+        self.on('input', (msg) => {
+            log.debug('Received input message: ' + util.inspect(msg))
+
+            const inputPayload =
+                validateInputPayload<WebSocketNodeInputPayloadType>(
+                    self,
+                    msg.payload
+                )
+
+            if (
+                self.endpoint != (inputPayload.endpoint ?? self.config.endpoint)
+            ) {
+                self.endpoint = inputPayload.endpoint ?? self.config.endpoint
+                stopWebsocket(self, 'reconfigured', () => setupWebsocket(self))
+            }
+        })
 
         self.on('close', (removed: boolean, done: () => void) => {
             self.status({
@@ -190,8 +256,7 @@ module.exports = (RED: NodeAPI) => {
                 `Disconnecting - node ${removed ? 'removed' : 'restarted'}`
             )
 
-            self.ws?.close(1000, `Node ${removed ? 'removed' : 'restarted'}`)
-            done()
+            stopWebsocket(self, `${removed ? 'removed' : 'restarted'}`, done)
         })
 
         self.status({

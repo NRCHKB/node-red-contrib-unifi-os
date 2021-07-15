@@ -6,6 +6,7 @@ import WebSocket from 'ws'
 type WebSocketNodeType = Node & {
     config: WebSocketNodeConfigType
     accessControllerNode: AccessControllerNodeType
+    endpoint: string
     ws?: WebSocket
 }
 

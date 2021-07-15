@@ -28,9 +28,8 @@ module.exports = (RED: NodeAPI) => {
                 const composedCookie = cookieToObject(config.headers.cookie)
 
                 if ('TOKEN' in composedCookie) {
-                    const [, jwtEncodedBody] = composedCookie['TOKEN'].split(
-                        '.'
-                    )
+                    const [, jwtEncodedBody] =
+                        composedCookie['TOKEN'].split('.')
 
                     if (jwtEncodedBody) {
                         const buffer = Buffer.from(jwtEncodedBody, 'base64')
@@ -74,35 +73,35 @@ module.exports = (RED: NodeAPI) => {
             log.trace(util.inspect(error?.response))
 
             switch (error?.response?.status) {
-            case 400:
-                if (
-                    unifiResponse?.meta?.msg ==
+                case 400:
+                    if (
+                        unifiResponse?.meta?.msg ==
                         UnifiResponseMetaMsg.INVALID_PAYLOAD
-                ) {
-                    const msg = `Invalid Payload ${unifiResponse?.meta?.validationError?.field} ${unifiResponse?.meta?.validationError?.pattern}`
-                    log.error(msg)
-                    throw new Error(msg)
-                }
+                    ) {
+                        const msg = `Invalid Payload ${unifiResponse?.meta?.validationError?.field} ${unifiResponse?.meta?.validationError?.pattern}`
+                        log.error(msg)
+                        throw new Error(msg)
+                    }
 
-                log.error('Invalid Payload: ' + error, true, relatedNode)
-                throw new HttpError('Invalid Payload', 403)
-            case 401:
-                if (
-                    unifiResponse?.meta?.msg ==
+                    log.error('Invalid Payload: ' + error, true, relatedNode)
+                    throw new HttpError('Invalid Payload', 403)
+                case 401:
+                    if (
+                        unifiResponse?.meta?.msg ==
                         UnifiResponseMetaMsg.NO_SITE_CONTEXT
-                ) {
-                    log.error('No Site Context')
-                    throw new Error('No Site Context')
-                }
+                    ) {
+                        log.error('No Site Context')
+                        throw new Error('No Site Context')
+                    }
 
-                log.error('Unauthorized: ' + error, true, relatedNode)
-                throw new HttpError('Unauthorized', 401)
-            case 403:
-                log.error('Forbidden access: ' + error, true, relatedNode)
-                throw new HttpError('Forbidden access', 403)
-            case 404:
-                log.error('Endpoint not found: ' + error, true, relatedNode)
-                throw new HttpError('Endpoint not found', 404)
+                    log.error('Unauthorized: ' + error, true, relatedNode)
+                    throw new HttpError('Unauthorized', 401)
+                case 403:
+                    log.error('Forbidden access: ' + error, true, relatedNode)
+                    throw new HttpError('Forbidden access', 403)
+                case 404:
+                    log.error('Endpoint not found: ' + error, true, relatedNode)
+                    throw new HttpError('Endpoint not found', 404)
             }
 
             log.trace(util.inspect(error))
