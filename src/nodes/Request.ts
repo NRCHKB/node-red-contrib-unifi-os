@@ -2,7 +2,7 @@ import { NodeAPI } from 'node-red'
 import RequestNodeConfigType from '../types/RequestNodeConfigType'
 import RequestNodeType from '../types/RequestNodeType'
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
-import AccessControllerNodeInputPayloadType from '../types/AccessControllerNodeInputPayloadType'
+import RequestNodeInputPayloadType from '../types/RequestNodeInputPayloadType'
 import { logger } from '@nrchkb/logger'
 import util from 'util'
 
@@ -82,10 +82,11 @@ module.exports = (RED: NodeAPI) => {
                 text: 'Sending',
             })
 
-            const inputPayload = validateInputPayload<AccessControllerNodeInputPayloadType>(
-                self,
-                msg.payload
-            )
+            const inputPayload =
+                validateInputPayload<RequestNodeInputPayloadType>(
+                    self,
+                    msg.payload
+                )
 
             self.accessControllerNode
                 .request(
