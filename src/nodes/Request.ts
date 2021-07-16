@@ -7,10 +7,10 @@ import { logger } from '@nrchkb/logger'
 import util from 'util'
 
 module.exports = (RED: NodeAPI) => {
-    const validateInputPayload = <T>(
+    const validateInputPayload = (
         self: RequestNodeType,
         payload: any
-    ): T => {
+    ): RequestNodeInputPayloadType => {
         if (!self.config?.endpoint && !payload?.endpoint) {
             self.status({
                 fill: 'red',
@@ -82,18 +82,15 @@ module.exports = (RED: NodeAPI) => {
                 text: 'Sending',
             })
 
-            const inputPayload =
-                validateInputPayload<RequestNodeInputPayloadType>(
-                    self,
-                    msg.payload
-                )
+            const inputPayload = validateInputPayload(self, msg.payload)
 
             self.accessControllerNode
                 .request(
                     self.id,
                     inputPayload?.endpoint || self.config.endpoint,
                     inputPayload?.method || self.config.method || 'GET',
-                    inputPayload?.data || self.config.data
+                    inputPayload?.data || self.config.data,
+                    inputPayload?.responseType || self.config.responseType
                 )
                 .then((data) => {
                     self.status({
@@ -103,6 +100,7 @@ module.exports = (RED: NodeAPI) => {
                     })
                     log.debug('Result:')
                     log.trace(util.inspect(data))
+
                     self.send({
                         payload: data,
                         inputMsg: msg,

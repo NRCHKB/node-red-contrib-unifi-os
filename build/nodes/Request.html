@@ -25,6 +25,10 @@
                         value: '',
                         required: false
                     },
+                    responseType: {
+                        value: undefined,
+                        required: false
+                    },
                 },
             inputs: 1,
             outputs: 1,
@@ -78,6 +82,17 @@
     <div class="form-row">
         <label for="node-input-data"><i class="fa fa-truck"></i> Data</label>
         <input type="text" id="node-input-data" placeholder="{}">
+    </div>
+    <div class="form-row">
+        <label for="node-input-responseType"><i class="fa fa-filter"></i> Response Type</label>
+        <select id="node-input-responseType">
+            <option value="arraybuffer">arraybuffer</option>
+            <option value="blob">blob</option>
+            <option value="document">document</option>
+            <option value="json">json</option>
+            <option value="text">text</option>
+            <option value="stream">stream</option>
+        </select>
     </div>
 </script>
 

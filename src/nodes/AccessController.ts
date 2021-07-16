@@ -74,7 +74,7 @@ module.exports = (RED: NodeAPI) => {
             })
         }
 
-        self.request = async (nodeId, endpoint, method, data?) => {
+        self.request = async (nodeId, endpoint, method, data, responseType) => {
             if (!endpoint) {
                 Promise.reject(new Error('endpoint cannot be empty!'))
             }
@@ -105,6 +105,7 @@ module.exports = (RED: NodeAPI) => {
                             'X-Request-ID': nodeId,
                         },
                         withCredentials: true,
+                        responseType,
                     })
                         .catch((error) => {
                             if (error instanceof HttpError) {

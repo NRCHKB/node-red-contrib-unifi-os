@@ -151,7 +151,7 @@ module.exports = (RED: NodeAPI) => {
                     )
 
                     self.send([
-                        null,
+                        {},
                         {
                             payload: {
                                 code,
