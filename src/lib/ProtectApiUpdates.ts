@@ -174,7 +174,7 @@ export class ProtectApiUpdates {
             ) {
                 log.error("Packet length doesn't match header information.")
             }
-        } catch (error) {
+        } catch (error: any) {
             log.error(
                 'Realtime update API: error decoding update packet: %s.',
                 error
