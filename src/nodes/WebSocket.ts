@@ -111,7 +111,7 @@ module.exports = (RED: NodeAPI) => {
                             self.send({
                                 payload: protectApiUpdate,
                             })
-                        } catch (error) {
+                        } catch (error: any) {
                             log.error(error)
                         }
                     }
