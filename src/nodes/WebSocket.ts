@@ -37,11 +37,9 @@ module.exports = (RED: NodeAPI) => {
         action: string,
         callback: () => void
     ): Promise<void> => {
+        self.ws?.removeAllListeners()
         self.ws?.close(1000, `Node ${action}`)
         self.ws?.terminate()
-        if (self.ws !== undefined) {
-            self.ws.removeAllListeners();
-        }
         self.ws = undefined
         callback()
     }
