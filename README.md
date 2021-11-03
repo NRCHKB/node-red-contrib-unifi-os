@@ -39,7 +39,7 @@ The format of these nodes is a bit different from the list linked above. Here is
 
 Here is an example payload which maybe sent if you would like to send data (POST) to the UniFi Console. This example will reset the DPI counters on your system. **DATA WILL BE REMOVED FROM YOUR UNIFI CONSOLE WHEN SENDING THIS MESSAGE**
 ```json
-msg = {
+{
   "payload": {
     "endpoint": "/proxy/network/api/s/default/cmd/stat",
     "method": "POST",
