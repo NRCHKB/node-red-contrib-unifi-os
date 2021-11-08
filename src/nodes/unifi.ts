@@ -15,30 +15,32 @@ module.exports = (RED: NodeAPI) => {
         (config) => {
             log.debug(`Sending request to: ${config.url}`)
 
-            const contentLength = config.data?.toString().length ?? 0
-            if (contentLength > 0) {
-                config.headers['Content-Length'] = contentLength
-            }
+            if (config.headers) {
+                const contentLength = config.data?.toString().length ?? 0
+                if (contentLength > 0) {
+                    config.headers['Content-Length'] = contentLength
+                }
 
-            if (
-                config.headers.cookie &&
-                config.method?.toLowerCase() !== 'get'
-            ) {
-                // Create x-csrf-token
-                const composedCookie = cookieToObject(config.headers.cookie)
+                if (
+                    config.headers.cookie &&
+                    config.method?.toLowerCase() !== 'get'
+                ) {
+                    // Create x-csrf-token
+                    const composedCookie = cookieToObject(config.headers.cookie)
 
-                if ('TOKEN' in composedCookie) {
-                    const [, jwtEncodedBody] =
-                        composedCookie['TOKEN'].split('.')
+                    if ('TOKEN' in composedCookie) {
+                        const [, jwtEncodedBody] =
+                            composedCookie['TOKEN'].split('.')
 
-                    if (jwtEncodedBody) {
-                        const buffer = Buffer.from(jwtEncodedBody, 'base64')
-                        const { csrfToken } = JSON.parse(
-                            buffer.toString('ascii')
-                        )
+                        if (jwtEncodedBody) {
+                            const buffer = Buffer.from(jwtEncodedBody, 'base64')
+                            const { csrfToken } = JSON.parse(
+                                buffer.toString('ascii')
+                            )
 
-                        if (csrfToken) {
-                            config.headers['x-csrf-token'] = csrfToken
+                            if (csrfToken) {
+                                config.headers['x-csrf-token'] = csrfToken
+                            }
                         }
                     }
                 }

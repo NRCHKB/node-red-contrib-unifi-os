@@ -97,9 +97,10 @@ module.exports = (RED: NodeAPI) => {
                             keepAlive: true,
                         }),
                         headers: {
-                            cookie: await self
-                                .getAuthCookie()
-                                .then((value) => value),
+                            cookie:
+                                (await self
+                                    .getAuthCookie()
+                                    .then((value) => value)) ?? '',
                             'Content-Type': 'application/json',
                             Accept: 'application/json',
                             'X-Request-ID': nodeId,
@@ -147,6 +148,13 @@ module.exports = (RED: NodeAPI) => {
                     }),
                 }
             )
+                .catch((error) => {
+                    console.error(error)
+                    log.error('Failed to log out')
+                })
+                .then(() => {
+                    log.trace('Successfully logged out')
+                })
         })
 
         self.getAuthCookie()
