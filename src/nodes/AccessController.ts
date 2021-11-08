@@ -7,6 +7,9 @@ import { HttpError } from '../types/HttpError'
 import { endpoints } from '../Endpoints'
 import { UnifiResponse } from '../types/UnifiResponse'
 import { logger } from '@nrchkb/logger'
+import axios from 'axios'
+
+const AXIOS_NODE_CLOSED = 'Node closed by user'
 
 module.exports = (RED: NodeAPI) => {
     const body = function (
@@ -21,6 +24,8 @@ module.exports = (RED: NodeAPI) => {
 
         self.initialized = false
         self.authenticated = false
+        self.stopped = false
+        self.controllerType = self.config.controllerType ?? 'UniFiOSConsole'
 
         self.getAuthCookie = () => {
             if (self.authCookie) {
@@ -31,10 +36,13 @@ module.exports = (RED: NodeAPI) => {
             const url =
                 endpoints.protocol.base +
                 self.config.controllerIp +
-                endpoints.login.url
+                endpoints[self.controllerType].login.url
 
             return new Promise((resolve) => {
                 const authenticateWithRetry = () => {
+                    self.authenticateCancelTokenSource?.cancel()
+                    self.authenticateCancelTokenSource =
+                        axios.CancelToken.source()
                     Axios.post(
                         url,
                         {
@@ -46,6 +54,8 @@ module.exports = (RED: NodeAPI) => {
                                 rejectUnauthorized: false,
                                 keepAlive: true,
                             }),
+                            cancelToken:
+                                self.authenticateCancelTokenSource.token,
                         }
                     )
                         .then((response: AxiosResponse) => {
@@ -59,14 +69,20 @@ module.exports = (RED: NodeAPI) => {
                             }
                         })
                         .catch((reason: any) => {
-                            console.error(reason)
+                            if (
+                                !reason.toString().includes(AXIOS_NODE_CLOSED)
+                            ) {
+                                log.error(reason)
+                            }
                             self.authenticated = false
                             self.authCookie = undefined
 
-                            setTimeout(
-                                authenticateWithRetry,
-                                endpoints.login.retry
-                            )
+                            if (!self.stopped) {
+                                setTimeout(
+                                    authenticateWithRetry,
+                                    endpoints[self.controllerType].login.retry
+                                )
+                            }
                         })
                 }
 
@@ -115,7 +131,8 @@ module.exports = (RED: NodeAPI) => {
                                     self.authCookie = undefined
                                     setTimeout(
                                         axiosRequest,
-                                        endpoints.login.retry
+                                        endpoints[self.controllerType].login
+                                            .retry
                                     )
                                 }
                             }
@@ -133,10 +150,13 @@ module.exports = (RED: NodeAPI) => {
         }
 
         self.on('close', () => {
+            self.stopped = true
+            self.authenticateCancelTokenSource?.cancel(AXIOS_NODE_CLOSED)
+
             const url =
                 endpoints.protocol.base +
                 self.config.controllerIp +
-                endpoints.logout.url
+                endpoints[self.controllerType].logout.url
 
             Axios.post(
                 url,

@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-unifi-os",
-  "version": "0.5.3-dev.0",
+  "version": "0.5.3-dev.1",
   "description": "Nodes to access UniFi data using endpoints and websockets",
   "main": "build/nodes/unifi.js",
   "scripts": {
@@ -57,8 +57,8 @@
     "@types/node-red": "^1.1.1",
     "@types/semver": "^7.3.9",
     "@types/ws": "^8.2.0",
-    "@typescript-eslint/eslint-plugin": "^5.3.0",
-    "@typescript-eslint/parser": "^5.3.0",
+    "@typescript-eslint/eslint-plugin": "^5.3.1",
+    "@typescript-eslint/parser": "^5.3.1",
     "babel-eslint": "^10.1.0",
     "eslint": "^8.2.0",
     "eslint-config-prettier": "^8.3.0",
