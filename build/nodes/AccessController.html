@@ -11,6 +11,10 @@
                     controllerIp: {
                         value: '',
                         required: true
+                    },
+                    controllerType: {
+                        value: 'UniFiOSConsole',
+                        required: true
                     }
                 },
             credentials: {
@@ -22,26 +26,35 @@
             },
             labelStyle: function () {
                 return this.name ? 'node_label_italic' : ''
-            },
+            }
         });
 </script>
 
 <script data-template-name="unifi-access-controller" type="text/html">
-    <div class="form-row">
-        <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
-        <input type="text" id="node-config-input-name" placeholder="Name">
+    <div class="form-row unifi-flex">
+        <label for="node-config-input-name" class="unifi-width-50"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-config-input-name" class="unifi-grow" placeholder="Name">
     </div>
-    <div class="form-row">
-        <label for="node-config-input-controllerIp"><i class="fa fa-globe"></i> Controller IP</label>
-        <input type="text" id="node-config-input-controllerIp" placeholder="Controller IP">
+    <div class="unifi-text-divider">Controller</div>
+    <div class="form-row unifi-flex">
+        <label for="node-config-input-controllerIp" class="unifi-width-50"><i class="fa fa-globe"></i> IP</label>
+        <input type="text" id="node-config-input-controllerIp" class="unifi-grow" placeholder="Controller IP">
     </div>
-    <div class="form-row">
-        <label for="node-config-input-username"><i class="fa fa-user"></i> Unifi User Name</label>
-        <input type="text" id="node-config-input-username" placeholder="User Name">
+    <div class="form-row unifi-flex">
+        <label for="node-config-input-controllerType2" class="unifi-width-50"><i class="fa fa-server"></i> Type</label>
+        <select id="node-config-input-controllerType2" class="unifi-grow" >
+            <option value="UniFiOSConsole" selected="selected">UniFi OS Console</option>
+            <option value="UniFiNetworkApplication">UniFi Network Application</option>
+        </select>
     </div>
-    <div class="form-row">
-        <label for="node-config-input-password"><i class="fa fa-key"></i> Password</label>
-        <input type="password" id="node-config-input-password" placeholder="Password">
+    <div class="unifi-text-divider">Credentials</div>
+    <div class="form-row unifi-flex">
+        <label for="node-config-input-username" class="unifi-width-50"><i class="fa fa-user"></i> Username</label>
+        <input type="text" id="node-config-input-username" class="unifi-grow" placeholder="Username">
+    </div>
+    <div class="form-row unifi-flex">
+        <label for="node-config-input-password" class="unifi-width-50"><i class="fa fa-key"></i> Password</label>
+        <input type="password" id="node-config-input-password" class="unifi-grow" placeholder="Password">
     </div>
 </script>
 

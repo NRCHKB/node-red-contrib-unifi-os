@@ -5,6 +5,7 @@ import { HttpError } from '../types/HttpError'
 import { UnifiResponse, UnifiResponseMetaMsg } from '../types/UnifiResponse'
 import * as util from 'util'
 import { cookieToObject } from '../lib/cookieHelper'
+import axios from 'axios'
 
 loggerSetup({ timestampEnabled: 'UniFi' })
 
@@ -15,30 +16,32 @@ module.exports = (RED: NodeAPI) => {
         (config) => {
             log.debug(`Sending request to: ${config.url}`)
 
-            const contentLength = config.data?.toString().length ?? 0
-            if (contentLength > 0) {
-                config.headers['Content-Length'] = contentLength
-            }
+            if (config.headers) {
+                const contentLength = config.data?.toString().length ?? 0
+                if (contentLength > 0) {
+                    config.headers['Content-Length'] = contentLength
+                }
 
-            if (
-                config.headers.cookie &&
-                config.method?.toLowerCase() !== 'get'
-            ) {
-                // Create x-csrf-token
-                const composedCookie = cookieToObject(config.headers.cookie)
+                if (
+                    config.headers.cookie &&
+                    config.method?.toLowerCase() !== 'get'
+                ) {
+                    // Create x-csrf-token
+                    const composedCookie = cookieToObject(config.headers.cookie)
 
-                if ('TOKEN' in composedCookie) {
-                    const [, jwtEncodedBody] =
-                        composedCookie['TOKEN'].split('.')
+                    if ('TOKEN' in composedCookie) {
+                        const [, jwtEncodedBody] =
+                            composedCookie['TOKEN'].split('.')
 
-                    if (jwtEncodedBody) {
-                        const buffer = Buffer.from(jwtEncodedBody, 'base64')
-                        const { csrfToken } = JSON.parse(
-                            buffer.toString('ascii')
-                        )
+                        if (jwtEncodedBody) {
+                            const buffer = Buffer.from(jwtEncodedBody, 'base64')
+                            const { csrfToken } = JSON.parse(
+                                buffer.toString('ascii')
+                            )
 
-                        if (csrfToken) {
-                            config.headers['x-csrf-token'] = csrfToken
+                            if (csrfToken) {
+                                config.headers['x-csrf-token'] = csrfToken
+                            }
                         }
                     }
                 }
@@ -60,17 +63,29 @@ module.exports = (RED: NodeAPI) => {
             return response
         },
         function (error) {
+            if (axios.isCancel(error)) {
+                log.trace(error)
+                return Promise.reject(error)
+            }
+
             const nodeId = error?.response?.config?.headers?.['X-Request-ID']
             const relatedNode = RED.nodes.getNode(nodeId)
 
             const unifiResponse = error?.response?.data as UnifiResponse
 
             log.error(
-                `Bad response from: ${error?.response?.config?.url}`,
+                `Bad response from: ${
+                    error?.response?.config?.url ?? error?.config?.url
+                }`,
                 true,
                 relatedNode
             )
             log.trace(util.inspect(error?.response))
+
+            if (error?.code === 'ETIMEDOUT') {
+                const msg = 'Connect ETIMEDOUT'
+                throw new Error(msg)
+            }
 
             switch (error?.response?.status) {
                 case 400:
