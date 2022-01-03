@@ -17,11 +17,6 @@ module.exports = (RED: NodeAPI) => {
             log.debug(`Sending request to: ${config.url}`)
 
             if (config.headers) {
-                const contentLength = config.data?.toString().length ?? 0
-                if (contentLength > 0) {
-                    config.headers['Content-Length'] = contentLength
-                }
-
                 if (
                     config.headers.cookie &&
                     config.method?.toLowerCase() !== 'get'

@@ -7,9 +7,6 @@ import { HttpError } from '../types/HttpError'
 import { endpoints } from '../Endpoints'
 import { UnifiResponse } from '../types/UnifiResponse'
 import { logger } from '@nrchkb/logger'
-import axios from 'axios'
-
-const AXIOS_NODE_CLOSED = 'Node closed by user'
 
 module.exports = (RED: NodeAPI) => {
     const body = function (
@@ -26,6 +23,7 @@ module.exports = (RED: NodeAPI) => {
         self.authenticated = false
         self.stopped = false
         self.controllerType = self.config.controllerType ?? 'UniFiOSConsole'
+        self.abortController = new AbortController()
 
         self.getAuthCookie = () => {
             if (self.authCookie) {
@@ -40,9 +38,6 @@ module.exports = (RED: NodeAPI) => {
 
             return new Promise((resolve) => {
                 const authenticateWithRetry = () => {
-                    self.authenticateCancelTokenSource?.cancel()
-                    self.authenticateCancelTokenSource =
-                        axios.CancelToken.source()
                     Axios.post(
                         url,
                         {
@@ -54,8 +49,7 @@ module.exports = (RED: NodeAPI) => {
                                 rejectUnauthorized: false,
                                 keepAlive: true,
                             }),
-                            cancelToken:
-                                self.authenticateCancelTokenSource.token,
+                            signal: self.abortController.signal,
                         }
                     )
                         .then((response: AxiosResponse) => {
@@ -69,11 +63,10 @@ module.exports = (RED: NodeAPI) => {
                             }
                         })
                         .catch((reason: any) => {
-                            if (
-                                !reason.toString().includes(AXIOS_NODE_CLOSED)
-                            ) {
-                                log.error(reason)
+                            if (reason?.name === 'AbortError') {
+                                log.error('Request Aborted')
                             }
+
                             self.authenticated = false
                             self.authCookie = undefined
 
@@ -151,7 +144,7 @@ module.exports = (RED: NodeAPI) => {
 
         self.on('close', () => {
             self.stopped = true
-            self.authenticateCancelTokenSource?.cancel(AXIOS_NODE_CLOSED)
+            self.abortController.abort()
 
             const url =
                 endpoints.protocol.base +
