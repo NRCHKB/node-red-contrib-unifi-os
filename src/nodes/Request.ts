@@ -84,14 +84,18 @@ module.exports = (RED: NodeAPI) => {
 
             const inputPayload = validateInputPayload(self, msg.payload)
 
+            const endpoint = inputPayload?.endpoint || self.config.endpoint
+            const method = inputPayload?.method || self.config.method || 'GET'
+            const responseType =
+                inputPayload?.responseType || self.config.responseType
+
+            let data = undefined
+            if (method != 'GET') {
+                data = inputPayload?.data || self.config.data
+            }
+
             self.accessControllerNode
-                .request(
-                    self.id,
-                    inputPayload?.endpoint || self.config.endpoint,
-                    inputPayload?.method || self.config.method || 'GET',
-                    inputPayload?.data || self.config.data,
-                    inputPayload?.responseType || self.config.responseType
-                )
+                .request(self.id, endpoint, method, data, responseType)
                 .then((data) => {
                     self.status({
                         fill: 'green',

@@ -25,6 +25,10 @@
                         value: '',
                         required: false
                     },
+                    dataType: {
+                        value: 'json',
+                        required: false
+                    },
                     responseType: {
                         value: undefined,
                         required: false
@@ -41,9 +45,20 @@
                 return this.name ? 'node_label_italic' : ''
             },
             oneditprepare: function () {
+                $("#node-input-method")
+                    .change(function () {
+                        if (this.value === 'GET') {
+                            $("#request-data").fadeOut('fast')
+                        } else {
+                            $("#request-data").fadeIn('fast')
+                        }
+                    })
+                    .change()
+
                 $("#node-input-data").typedInput({
                     type: "json",
-                    types: ["json"]
+                    types: ["json", "str", "num", "bool"],
+                    typeField: "#node-input-dataType"
                 })
             }
         });
@@ -79,9 +94,10 @@
             <option value="UNLINK">UNLINK</option>
         </select>
     </div>
-    <div class="form-row">
+    <div class="form-row" id="request-data">
         <label for="node-input-data"><i class="fa fa-truck"></i> Data</label>
-        <input type="text" id="node-input-data" placeholder="{}">
+        <input type="text" id="node-input-data" placeholder="">
+        <input type="hidden" id="node-input-dataType">
     </div>
     <div class="form-row">
         <label for="node-input-responseType"><i class="fa fa-filter"></i> Response Type</label>
