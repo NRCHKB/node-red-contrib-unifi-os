@@ -7,6 +7,9 @@ import { HttpError } from '../types/HttpError'
 import { endpoints } from '../Endpoints'
 import { UnifiResponse } from '../types/UnifiResponse'
 import { logger } from '@nrchkb/logger'
+const {
+    AbortController,
+} = require('abortcontroller-polyfill/dist/cjs-ponyfill')
 
 module.exports = (RED: NodeAPI) => {
     const body = function (
