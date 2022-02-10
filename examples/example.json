@@ -1,0 +1,98 @@
+[
+  {
+    "id": "d3581e49f2f5c4a2",
+    "type": "unifi-request",
+    "z": "677ab7b023898f3c",
+    "name": "Bootstrap",
+    "accessControllerNodeId": "c42f07f6222e4d62",
+    "endpoint": "/proxy/protect/api/bootstrap",
+    "method": "GET",
+    "data": "{}",
+    "dataType": "json",
+    "responseType": "json",
+    "x": 440,
+    "y": 1100,
+    "wires": [
+      [
+        "0400011317c5d01d"
+      ]
+    ]
+  },
+  {
+    "id": "de49a794b59ca605",
+    "type": "inject",
+    "z": "677ab7b023898f3c",
+    "name": "",
+    "props": [],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "x": 310,
+    "y": 1100,
+    "wires": [
+      [
+        "d3581e49f2f5c4a2"
+      ]
+    ]
+  },
+  {
+    "id": "0400011317c5d01d",
+    "type": "debug",
+    "z": "677ab7b023898f3c",
+    "name": "",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 570,
+    "y": 1100,
+    "wires": []
+  },
+  {
+    "id": "be25d7c2ba1b7191",
+    "type": "unifi-web-socket",
+    "z": "677ab7b023898f3c",
+    "name": "Events",
+    "endpoint": "/proxy/network/wss/s/default/events",
+    "accessControllerNodeId": "c42f07f6222e4d62",
+    "reconnectTimeout": 30000,
+    "x": 430,
+    "y": 1160,
+    "wires": [
+      [
+        "545471265873e855"
+      ],
+      []
+    ]
+  },
+  {
+    "id": "545471265873e855",
+    "type": "debug",
+    "z": "677ab7b023898f3c",
+    "name": "",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 570,
+    "y": 1160,
+    "wires": []
+  },
+  {
+    "id": "c42f07f6222e4d62",
+    "type": "unifi-access-controller",
+    "name": "UDM Pro",
+    "controllerIp": "192.168.1.1",
+    "controllerType": "UniFiOSConsole"
+  }
+]
