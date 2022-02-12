@@ -22,7 +22,9 @@ module.exports = (RED: NodeAPI) => {
                     config.method?.toLowerCase() !== 'get'
                 ) {
                     // Create x-csrf-token
-                    const composedCookie = cookieToObject(config.headers.cookie)
+                    const composedCookie = cookieToObject(
+                        config.headers.cookie as string
+                    )
 
                     if ('TOKEN' in composedCookie) {
                         const [, jwtEncodedBody] =
