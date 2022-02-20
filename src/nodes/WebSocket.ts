@@ -43,8 +43,8 @@ module.exports = (RED: NodeAPI) => {
         self.ws?.removeAllListeners()
         self.ws?.close(1000, `Node ${action}`)
         self.ws?.terminate()
-        self.ws = undefined
         log.debug(`ws ${self.ws?.['id']} closed`)
+        self.ws = undefined
         callback()
     }
 
