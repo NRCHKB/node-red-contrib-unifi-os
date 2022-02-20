@@ -81,7 +81,7 @@ module.exports = (RED: NodeAPI) => {
 
             if (error?.code === 'ETIMEDOUT') {
                 const msg = 'Connect ETIMEDOUT'
-                throw new Error(msg)
+                return Promise.reject(new Error(msg))
             }
 
             switch (error?.response?.status) {
@@ -92,7 +92,7 @@ module.exports = (RED: NodeAPI) => {
                     ) {
                         const msg = `Invalid Payload ${unifiResponse?.meta?.validationError?.field} ${unifiResponse?.meta?.validationError?.pattern}`
                         log.error(msg)
-                        throw new Error(msg)
+                        return Promise.reject(new Error(msg))
                     }
 
                     log.error('Invalid Payload: ' + error, true, relatedNode)
@@ -103,17 +103,21 @@ module.exports = (RED: NodeAPI) => {
                         UnifiResponseMetaMsg.NO_SITE_CONTEXT
                     ) {
                         log.error('No Site Context')
-                        throw new Error('No Site Context')
+                        return Promise.reject(new Error('No Site Context'))
                     }
 
                     log.error('Unauthorized: ' + error, true, relatedNode)
-                    throw new HttpError('Unauthorized', 401)
+                    return Promise.reject(new HttpError('Unauthorized', 401))
                 case 403:
                     log.error('Forbidden access: ' + error, true, relatedNode)
-                    throw new HttpError('Forbidden access', 403)
+                    return Promise.reject(
+                        new HttpError('Forbidden access', 403)
+                    )
                 case 404:
                     log.error('Endpoint not found: ' + error, true, relatedNode)
-                    throw new HttpError('Endpoint not found', 404)
+                    return Promise.reject(
+                        new HttpError('Endpoint not found', 404)
+                    )
             }
 
             log.trace(util.inspect(error))
