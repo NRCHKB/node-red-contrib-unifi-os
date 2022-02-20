@@ -46,14 +46,12 @@ module.exports = (RED: NodeAPI) => {
     }
 
     const setupWebsocket = async (self: WebSocketNodeType): Promise<void> => {
-        const log = logger('UniFi', 'WebSocket', self.name, self)
-
-        const url =
-            endpoints.protocol.webSocket +
-            self.accessControllerNode.config.controllerIp +
-            self.endpoint
-
         const connectWebSocket = async () => {
+            const url =
+                endpoints.protocol.webSocket +
+                self.accessControllerNode.config.controllerIp +
+                self.endpoint
+
             const id = crypto.randomBytes(16).toString('hex')
             const wsLogger = logger('UniFi', `WebSocket:${id}`, self.name, self)
 
@@ -113,7 +111,7 @@ module.exports = (RED: NodeAPI) => {
                         try {
                             const protectApiUpdate =
                                 ProtectApiUpdates.decodeUpdatePacket(
-                                    log,
+                                    wsLogger,
                                     data as Buffer
                                 )
 
@@ -121,7 +119,7 @@ module.exports = (RED: NodeAPI) => {
                                 payload: protectApiUpdate,
                             })
                         } catch (error: any) {
-                            log.error(error)
+                            wsLogger.error(error)
                         }
                     }
 
@@ -143,7 +141,7 @@ module.exports = (RED: NodeAPI) => {
                 })
 
                 self.ws.on('error', (error) => {
-                    log.error(`${error}`)
+                    wsLogger.error(`${error}`)
 
                     self.status({
                         fill: 'red',
