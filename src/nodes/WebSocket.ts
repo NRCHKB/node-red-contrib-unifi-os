@@ -8,6 +8,7 @@ import { logger } from '@nrchkb/logger'
 import util from 'util'
 import WebSocketNodeInputPayloadType from '../types/WebSocketNodeInputPayloadType'
 import { ProtectApiUpdates } from '../lib/ProtectApiUpdates'
+import * as crypto from 'crypto'
 
 /**
  * DEFAULT_RECONNECT_TIMEOUT is to wait until next try to connect web socket in case of error or server side closed socket (for example UniFi restart)
@@ -53,6 +54,9 @@ module.exports = (RED: NodeAPI) => {
             self.endpoint
 
         const connectWebSocket = async () => {
+            const id = crypto.randomBytes(16).toString('hex')
+            const wsLogger = logger('UniFi', `WebSocket:${id}`, self.name, self)
+
             self.ws = new WebSocket(url, {
                 rejectUnauthorized: false,
                 headers: {
@@ -62,12 +66,14 @@ module.exports = (RED: NodeAPI) => {
                 },
             })
 
+            self.ws.id = id
+
             if (
                 !self.ws ||
                 self.ws.readyState === WebSocket.CLOSING ||
                 self.ws.readyState === WebSocket.CLOSED
             ) {
-                log.trace(
+                wsLogger.trace(
                     `Unable to connect to UniFi on ${url}. Will retry again later.`
                 )
 
@@ -83,7 +89,7 @@ module.exports = (RED: NodeAPI) => {
                 )
             } else {
                 self.ws.on('open', function open() {
-                    log.debug(`Connection to ${url} open`)
+                    wsLogger.debug(`Connection to ${url} open`)
 
                     self.status({
                         fill: 'green',
@@ -94,6 +100,8 @@ module.exports = (RED: NodeAPI) => {
 
                 let tick = false
                 self.ws.on('message', (data) => {
+                    wsLogger.trace('Received data')
+
                     try {
                         const parsedData = JSON.parse(data.toString())
 
@@ -145,7 +153,7 @@ module.exports = (RED: NodeAPI) => {
                 })
 
                 self.ws.on('close', (code, reason) => {
-                    log.debug(
+                    wsLogger.debug(
                         `Connection to ${url} closed. Code:${code}${
                             reason ? `, reason: ${reason}` : ''
                         }`
@@ -169,10 +177,12 @@ module.exports = (RED: NodeAPI) => {
                     })
 
                     if (code === 1000) {
-                        log.trace('Connection possibly closed by node itself')
+                        wsLogger.trace(
+                            'Connection possibly closed by node itself'
+                        )
                     } else {
                         if (code === 1006) {
-                            log.error('Is UniFi server down?', false)
+                            wsLogger.error('Is UniFi server down?', false)
                         }
 
                         setTimeout(
