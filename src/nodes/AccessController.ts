@@ -11,6 +11,17 @@ const {
     AbortController,
 } = require('abortcontroller-polyfill/dist/cjs-ponyfill')
 
+const urlBuilder = (self: AccessControllerNodeType, endpoint?: string) => {
+    return (
+        endpoints.protocol.base +
+        self.config.controllerIp +
+        (self.config.controllerPort?.trim().length
+            ? `:${self.config.controllerPort}`
+            : '') +
+        endpoint
+    )
+}
+
 module.exports = (RED: NodeAPI) => {
     const body = function (
         this: AccessControllerNodeType,
@@ -34,10 +45,10 @@ module.exports = (RED: NodeAPI) => {
                 return Promise.resolve(self.authCookie)
             }
 
-            const url =
-                endpoints.protocol.base +
-                self.config.controllerIp +
+            const url = urlBuilder(
+                self,
                 endpoints[self.controllerType].login.url
+            )
 
             return new Promise((resolve) => {
                 const authenticateWithRetry = () => {
@@ -95,8 +106,7 @@ module.exports = (RED: NodeAPI) => {
                 Promise.reject(new Error('method cannot be empty!'))
             }
 
-            const url =
-                endpoints.protocol.base + self.config.controllerIp + endpoint
+            const url = urlBuilder(self, endpoint)
 
             return new Promise((resolve, reject) => {
                 const axiosRequest = async () => {
@@ -149,10 +159,10 @@ module.exports = (RED: NodeAPI) => {
             self.stopped = true
             self.abortController.abort()
 
-            const url =
-                endpoints.protocol.base +
-                self.config.controllerIp +
+            const url = urlBuilder(
+                self,
                 endpoints[self.controllerType].logout.url
+            )
 
             Axios.post(
                 url,
