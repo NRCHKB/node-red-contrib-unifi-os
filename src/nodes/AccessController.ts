@@ -183,16 +183,30 @@ module.exports = (RED: NodeAPI) => {
                 })
         })
 
-        self.getAuthCookie()
-            .catch((error) => {
-                console.error(error)
-                log.error('Failed to pre authenticate')
-            })
-            .then(() => {
-                log.debug('Initialized')
-                self.initialized = true
-                log.debug('Successfully pre authenticated')
-            })
+        const refresh = (init?: boolean) => {
+            self.getAuthCookie()
+                .catch((error) => {
+                    console.error(error)
+                    log.error('Failed to pre authenticate')
+                })
+                .then(() => {
+                    if (init) {
+                        log.debug('Initialized')
+                        self.initialized = true
+                        log.debug('Successfully pre authenticated')
+                    } else {
+                        log.debug('Cookies refreshed')
+                    }
+                })
+        }
+
+        // Initial cookies fetch
+        refresh(true)
+
+        // Refresh cookies every 45 minutes
+        setInterval(() => {
+            refresh()
+        }, 2700000)
     }
 
     RED.nodes.registerType('unifi-access-controller', body, {
