@@ -12,6 +12,10 @@
                         value: '',
                         required: true
                     },
+                    controllerPort: {
+                        value: '',
+                        required: false
+                    },
                     controllerType: {
                         value: 'UniFiOSConsole',
                         required: true
@@ -39,6 +43,10 @@
     <div class="form-row unifi-flex">
         <label for="node-config-input-controllerIp" class="unifi-width-50"><i class="fa fa-globe"></i> IP</label>
         <input type="text" id="node-config-input-controllerIp" class="unifi-grow" placeholder="Controller IP">
+    </div>
+    <div class="form-row unifi-flex">
+        <label for="node-config-input-controllerPort" class="unifi-width-50"><i class="fa fa-globe"></i> Port</label>
+        <input type="text" id="node-config-input-controllerPort" class="unifi-grow" placeholder="8443">
     </div>
     <div class="form-row unifi-flex">
         <label for="node-config-input-controllerType" class="unifi-width-50"><i class="fa fa-server"></i> Type</label>

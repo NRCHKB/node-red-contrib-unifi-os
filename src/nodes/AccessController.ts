@@ -11,6 +11,17 @@ const {
     AbortController,
 } = require('abortcontroller-polyfill/dist/cjs-ponyfill')
 
+const urlBuilder = (self: AccessControllerNodeType, endpoint?: string) => {
+    return (
+        endpoints.protocol.base +
+        self.config.controllerIp +
+        (self.config.controllerPort?.trim().length
+            ? `:${self.config.controllerPort}`
+            : '') +
+        endpoint
+    )
+}
+
 module.exports = (RED: NodeAPI) => {
     const body = function (
         this: AccessControllerNodeType,
@@ -28,16 +39,38 @@ module.exports = (RED: NodeAPI) => {
         self.controllerType = self.config.controllerType ?? 'UniFiOSConsole'
         self.abortController = new AbortController()
 
-        self.getAuthCookie = () => {
-            if (self.authCookie) {
+        const refresh = (init?: boolean) => {
+            self.getAuthCookie(true)
+                .catch((error) => {
+                    console.error(error)
+                    log.error('Failed to pre authenticate')
+                })
+                .then(() => {
+                    if (init) {
+                        log.debug('Initialized')
+                        self.initialized = true
+                        log.debug('Successfully pre authenticated')
+                    } else {
+                        log.debug('Cookies refreshed')
+                    }
+                })
+        }
+
+        // Refresh cookies every 45 minutes
+        const refreshTimeout = setInterval(() => {
+            refresh()
+        }, 2700000)
+
+        self.getAuthCookie = (regenerate?: boolean) => {
+            if (self.authCookie && regenerate !== true) {
                 log.debug('Returning stored auth cookie')
                 return Promise.resolve(self.authCookie)
             }
 
-            const url =
-                endpoints.protocol.base +
-                self.config.controllerIp +
+            const url = urlBuilder(
+                self,
                 endpoints[self.controllerType].login.url
+            )
 
             return new Promise((resolve) => {
                 const authenticateWithRetry = () => {
@@ -95,8 +128,7 @@ module.exports = (RED: NodeAPI) => {
                 Promise.reject(new Error('method cannot be empty!'))
             }
 
-            const url =
-                endpoints.protocol.base + self.config.controllerIp + endpoint
+            const url = urlBuilder(self, endpoint)
 
             return new Promise((resolve, reject) => {
                 const axiosRequest = async () => {
@@ -147,12 +179,13 @@ module.exports = (RED: NodeAPI) => {
 
         self.on('close', () => {
             self.stopped = true
+            clearTimeout(refreshTimeout)
             self.abortController.abort()
 
-            const url =
-                endpoints.protocol.base +
-                self.config.controllerIp +
+            const url = urlBuilder(
+                self,
                 endpoints[self.controllerType].logout.url
+            )
 
             Axios.post(
                 url,
@@ -173,16 +206,8 @@ module.exports = (RED: NodeAPI) => {
                 })
         })
 
-        self.getAuthCookie()
-            .catch((error) => {
-                console.error(error)
-                log.error('Failed to pre authenticate')
-            })
-            .then(() => {
-                log.debug('Initialized')
-                self.initialized = true
-                log.debug('Successfully pre authenticated')
-            })
+        // Initial cookies fetch
+        refresh(true)
     }
 
     RED.nodes.registerType('unifi-access-controller', body, {

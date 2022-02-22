@@ -7,7 +7,7 @@ type WebSocketNodeType = Node & {
     config: WebSocketNodeConfigType
     accessControllerNode: AccessControllerNodeType
     endpoint: string
-    ws?: WebSocket
+    ws?: WebSocket & { id?: string }
 }
 
 export default WebSocketNodeType

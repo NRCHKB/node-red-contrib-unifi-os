@@ -8,6 +8,8 @@ import { logger } from '@nrchkb/logger'
 import util from 'util'
 import WebSocketNodeInputPayloadType from '../types/WebSocketNodeInputPayloadType'
 import { ProtectApiUpdates } from '../lib/ProtectApiUpdates'
+import * as crypto from 'crypto'
+import { Loggers } from '@nrchkb/logger/src/types'
 
 /**
  * DEFAULT_RECONNECT_TIMEOUT is to wait until next try to connect web socket in case of error or server side closed socket (for example UniFi restart)
@@ -34,25 +36,28 @@ module.exports = (RED: NodeAPI) => {
 
     const stopWebsocket = async (
         self: WebSocketNodeType,
+        log: Loggers,
         action: string,
         callback: () => void
     ): Promise<void> => {
         self.ws?.removeAllListeners()
         self.ws?.close(1000, `Node ${action}`)
         self.ws?.terminate()
+        log.debug(`ws ${self.ws?.['id']} closed`)
         self.ws = undefined
         callback()
     }
 
     const setupWebsocket = async (self: WebSocketNodeType): Promise<void> => {
-        const log = logger('UniFi', 'WebSocket', self.name, self)
-
-        const url =
-            endpoints.protocol.webSocket +
-            self.accessControllerNode.config.controllerIp +
-            self.endpoint
-
         const connectWebSocket = async () => {
+            const url =
+                endpoints.protocol.webSocket +
+                self.accessControllerNode.config.controllerIp +
+                self.endpoint
+
+            const id = crypto.randomBytes(16).toString('hex')
+            const wsLogger = logger('UniFi', `WebSocket:${id}`, self.name, self)
+
             self.ws = new WebSocket(url, {
                 rejectUnauthorized: false,
                 headers: {
@@ -62,12 +67,14 @@ module.exports = (RED: NodeAPI) => {
                 },
             })
 
+            self.ws.id = id
+
             if (
                 !self.ws ||
                 self.ws.readyState === WebSocket.CLOSING ||
                 self.ws.readyState === WebSocket.CLOSED
             ) {
-                log.trace(
+                wsLogger.trace(
                     `Unable to connect to UniFi on ${url}. Will retry again later.`
                 )
 
@@ -83,7 +90,7 @@ module.exports = (RED: NodeAPI) => {
                 )
             } else {
                 self.ws.on('open', function open() {
-                    log.debug(`Connection to ${url} open`)
+                    wsLogger.debug(`Connection to ${url} open`)
 
                     self.status({
                         fill: 'green',
@@ -94,6 +101,8 @@ module.exports = (RED: NodeAPI) => {
 
                 let tick = false
                 self.ws.on('message', (data) => {
+                    wsLogger.trace('Received data')
+
                     try {
                         const parsedData = JSON.parse(data.toString())
 
@@ -105,7 +114,7 @@ module.exports = (RED: NodeAPI) => {
                         try {
                             const protectApiUpdate =
                                 ProtectApiUpdates.decodeUpdatePacket(
-                                    log,
+                                    wsLogger,
                                     data as Buffer
                                 )
 
@@ -113,7 +122,7 @@ module.exports = (RED: NodeAPI) => {
                                 payload: protectApiUpdate,
                             })
                         } catch (error: any) {
-                            log.error(error)
+                            wsLogger.error(error)
                         }
                     }
 
@@ -135,7 +144,7 @@ module.exports = (RED: NodeAPI) => {
                 })
 
                 self.ws.on('error', (error) => {
-                    log.error(`${error}`)
+                    wsLogger.error(`${error}`)
 
                     self.status({
                         fill: 'red',
@@ -145,7 +154,7 @@ module.exports = (RED: NodeAPI) => {
                 })
 
                 self.ws.on('close', (code, reason) => {
-                    log.debug(
+                    wsLogger.debug(
                         `Connection to ${url} closed. Code:${code}${
                             reason ? `, reason: ${reason}` : ''
                         }`
@@ -169,10 +178,12 @@ module.exports = (RED: NodeAPI) => {
                     })
 
                     if (code === 1000) {
-                        log.trace('Connection possibly closed by node itself')
+                        wsLogger.trace(
+                            'Connection possibly closed by node itself'
+                        )
                     } else {
                         if (code === 1006) {
-                            log.error('Is UniFi server down?', false)
+                            wsLogger.error('Is UniFi server down?', false)
                         }
 
                         setTimeout(
@@ -228,19 +239,19 @@ module.exports = (RED: NodeAPI) => {
             }
 
             checkAndWait()
-        }).then(() => {
-            body.call(self)
+        }).then(async () => {
+            await body.call(self)
         })
     }
 
-    const body = function (this: WebSocketNodeType) {
+    const body = async function (this: WebSocketNodeType) {
         const self = this
         const log = logger('UniFi', 'WebSocket', self.name, self)
 
         self.endpoint = self.config.endpoint
-        setupWebsocket(self)
+        await setupWebsocket(self)
 
-        self.on('input', (msg) => {
+        self.on('input', async (msg) => {
             log.debug('Received input message: ' + util.inspect(msg))
 
             const inputPayload =
@@ -253,11 +264,17 @@ module.exports = (RED: NodeAPI) => {
                 self.endpoint != (inputPayload.endpoint ?? self.config.endpoint)
             ) {
                 self.endpoint = inputPayload.endpoint ?? self.config.endpoint
-                stopWebsocket(self, 'reconfigured', () => setupWebsocket(self))
+                await stopWebsocket(self, log, 'reconfigured', () =>
+                    setupWebsocket(self)
+                )
+            } else {
+                log.debug(
+                    `Input ignored, endpoint did not change: ${self.endpoint}, ${inputPayload.endpoint}, ${self.config.endpoint}`
+                )
             }
         })
 
-        self.on('close', (removed: boolean, done: () => void) => {
+        self.on('close', async (removed: boolean, done: () => void) => {
             self.status({
                 fill: 'grey',
                 shape: 'dot',
@@ -268,7 +285,12 @@ module.exports = (RED: NodeAPI) => {
                 `Disconnecting - node ${removed ? 'removed' : 'restarted'}`
             )
 
-            stopWebsocket(self, `${removed ? 'removed' : 'restarted'}`, done)
+            await stopWebsocket(
+                self,
+                log,
+                `${removed ? 'removed' : 'restarted'}`,
+                done
+            )
         })
 
         self.status({
