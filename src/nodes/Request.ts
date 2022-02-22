@@ -87,7 +87,7 @@ module.exports = (RED: NodeAPI) => {
             const endpoint = inputPayload?.endpoint || self.config.endpoint
             const method = inputPayload?.method || self.config.method || 'GET'
             const responseType =
-                inputPayload?.responseType || self.config.responseType
+                inputPayload?.responseType || self.config.responseType || 'json'
 
             let data = undefined
             if (method != 'GET') {
