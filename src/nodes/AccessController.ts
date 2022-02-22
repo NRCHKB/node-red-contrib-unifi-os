@@ -40,7 +40,7 @@ module.exports = (RED: NodeAPI) => {
         self.abortController = new AbortController()
 
         const refresh = (init?: boolean) => {
-            self.getAuthCookie()
+            self.getAuthCookie(true)
                 .catch((error) => {
                     console.error(error)
                     log.error('Failed to pre authenticate')
@@ -61,8 +61,8 @@ module.exports = (RED: NodeAPI) => {
             refresh()
         }, 2700000)
 
-        self.getAuthCookie = () => {
-            if (self.authCookie) {
+        self.getAuthCookie = (regenerate?: boolean) => {
+            if (self.authCookie && regenerate !== true) {
                 log.debug('Returning stored auth cookie')
                 return Promise.resolve(self.authCookie)
             }

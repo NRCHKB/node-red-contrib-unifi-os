@@ -6,7 +6,7 @@ import ControllerType from './ControllerType'
 
 type AccessControllerNodeType = Node & {
     config: AccessControllerNodeConfigType
-    getAuthCookie: () => Promise<string | undefined>
+    getAuthCookie: (regenerate?: boolean) => Promise<string | undefined>
     authCookie: string | undefined // Authorization TOKEN cookie
     abortController: AbortController // controller used to cancel auth request
     request: (
