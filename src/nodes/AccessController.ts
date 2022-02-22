@@ -39,6 +39,28 @@ module.exports = (RED: NodeAPI) => {
         self.controllerType = self.config.controllerType ?? 'UniFiOSConsole'
         self.abortController = new AbortController()
 
+        const refresh = (init?: boolean) => {
+            self.getAuthCookie()
+                .catch((error) => {
+                    console.error(error)
+                    log.error('Failed to pre authenticate')
+                })
+                .then(() => {
+                    if (init) {
+                        log.debug('Initialized')
+                        self.initialized = true
+                        log.debug('Successfully pre authenticated')
+                    } else {
+                        log.debug('Cookies refreshed')
+                    }
+                })
+        }
+
+        // Refresh cookies every 45 minutes
+        const refreshTimeout = setInterval(() => {
+            refresh()
+        }, 2700000)
+
         self.getAuthCookie = () => {
             if (self.authCookie) {
                 log.debug('Returning stored auth cookie')
@@ -157,6 +179,7 @@ module.exports = (RED: NodeAPI) => {
 
         self.on('close', () => {
             self.stopped = true
+            clearTimeout(refreshTimeout)
             self.abortController.abort()
 
             const url = urlBuilder(
@@ -183,30 +206,8 @@ module.exports = (RED: NodeAPI) => {
                 })
         })
 
-        const refresh = (init?: boolean) => {
-            self.getAuthCookie()
-                .catch((error) => {
-                    console.error(error)
-                    log.error('Failed to pre authenticate')
-                })
-                .then(() => {
-                    if (init) {
-                        log.debug('Initialized')
-                        self.initialized = true
-                        log.debug('Successfully pre authenticated')
-                    } else {
-                        log.debug('Cookies refreshed')
-                    }
-                })
-        }
-
         // Initial cookies fetch
         refresh(true)
-
-        // Refresh cookies every 45 minutes
-        setInterval(() => {
-            refresh()
-        }, 2700000)
     }
 
     RED.nodes.registerType('unifi-access-controller', body, {
