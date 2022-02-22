@@ -8,7 +8,7 @@ type WebSocketNodeConfigType = NodeDef & {
     /**
      * UniFi web socket endpoint. For example /proxy/network/wss/s/default/events or /api/ws/system
      */
-    endpoint: string
+    endpoint?: string
     /**
      * How long in milliseconds to wait until trying to reconnect web socket client
      */
