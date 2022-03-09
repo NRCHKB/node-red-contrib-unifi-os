@@ -198,6 +198,16 @@ module.exports = (RED: NodeAPI) => {
                         )
                     }
                 })
+
+                self.ws.on('unexpected-response', (request, response) => {
+                    wsLogger.error('unexpected-response from the server')
+                    try {
+                        wsLogger.error(util.inspect(request))
+                        wsLogger.error(util.inspect(response))
+                    } catch (error: any) {
+                        wsLogger.error(error)
+                    }
+                })
             }
         }
 
@@ -255,12 +265,8 @@ module.exports = (RED: NodeAPI) => {
 
         self.endpoint = self.config.endpoint
 
-        if (self.endpoint?.trim().length) {
-            await setupWebsocket(self)
-        }
-
         self.on('input', async (msg) => {
-            log.debug('Received input message: ' + util.inspect(msg))
+            log.debug('Received input message: ' + util.inspect(msg?.payload))
 
             const inputPayload =
                 validateInputPayload<WebSocketNodeInputPayloadType>(
@@ -307,6 +313,10 @@ module.exports = (RED: NodeAPI) => {
                 done
             )
         })
+
+        if (self.endpoint?.trim().length && !!self.ws) {
+            await setupWebsocket(self)
+        }
 
         self.status({
             fill: 'green',
