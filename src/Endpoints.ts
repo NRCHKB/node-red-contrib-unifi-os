@@ -40,4 +40,13 @@ export const endpoints: Endpoints = {
             url: '/api/logout',
         },
     },
+    StandAloneNVR: {
+        login: {
+            url: '/api/auth',
+            retry: 5000,
+        },
+        logout: {
+            url: '/api/logout',
+        },
+    },
 }
