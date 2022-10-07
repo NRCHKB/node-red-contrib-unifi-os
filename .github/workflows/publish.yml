@@ -14,6 +14,7 @@ jobs:
         with:
           node-version: 12
       - run:
+          npm install -g npm
           npm ci
           npm run build
           npm test
@@ -34,6 +35,7 @@ jobs:
       - name: Publish
         if: contains(steps.package-version.outputs.current-version, 'dev') != true
         run: |
+          npm install -g npm
           npm ci
           npm run build
           npm publish
@@ -55,6 +57,7 @@ jobs:
       - name: Publish
         if: contains(steps.package-version.outputs.current-version, 'dev') != true
         run: |
+          npm install -g npm
           npm ci
           npm run build
           npm init --scope=nrchkb -y
