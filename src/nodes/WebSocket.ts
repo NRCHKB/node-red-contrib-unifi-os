@@ -41,11 +41,16 @@ module.exports = (RED: NodeAPI) => {
         action: string,
         callback: () => void
     ): Promise<void> => {
-        self.ws?.removeAllListeners()
-        self.ws?.close(1000, `Node ${action}`)
-        self.ws?.terminate()
-        log.debug(`ws ${self.ws?.['id']} closed`)
-        self.ws = undefined
+        if (self.ws) {
+            self.ws.removeAllListeners()
+            self.ws.close(1000, `Node ${action}`)
+            self.ws.terminate()
+            log.debug(`ws ${self.ws?.['id']} closed`)
+            self.ws = undefined
+        } else {
+            log.debug('ws already closed')
+        }
+
         callback()
     }
 
@@ -194,6 +199,16 @@ module.exports = (RED: NodeAPI) => {
                         )
                     }
                 })
+
+                self.ws.on('unexpected-response', (request, response) => {
+                    wsLogger.error('unexpected-response from the server')
+                    try {
+                        wsLogger.error(util.inspect(request))
+                        wsLogger.error(util.inspect(response))
+                    } catch (error: any) {
+                        wsLogger.error(error)
+                    }
+                })
             }
         }
 
@@ -261,16 +276,23 @@ module.exports = (RED: NodeAPI) => {
                     msg.payload
                 )
 
-            if (
-                self.endpoint != (inputPayload.endpoint ?? self.config.endpoint)
-            ) {
-                self.endpoint = inputPayload.endpoint ?? self.config.endpoint
-                await stopWebsocket(self, log, 'reconfigured', () =>
-                    setupWebsocket(self)
-                )
+            const newEndpoint = inputPayload.endpoint ?? self.config.endpoint
+
+            if (newEndpoint?.trim().length) {
+                if (self.endpoint != newEndpoint) {
+                    self.endpoint = newEndpoint
+
+                    await stopWebsocket(self, log, 'reconfigured', () =>
+                        setupWebsocket(self)
+                    )
+                } else {
+                    log.debug(
+                        `Input ignored, endpoint did not change: ${self.endpoint}, ${inputPayload.endpoint}, ${self.config.endpoint}`
+                    )
+                }
             } else {
                 log.debug(
-                    `Input ignored, endpoint did not change: ${self.endpoint}, ${inputPayload.endpoint}, ${self.config.endpoint}`
+                    `Input ignored, new endpoint is empty: ${self.endpoint}, ${inputPayload.endpoint}, ${self.config.endpoint}`
                 )
             }
         })
@@ -293,6 +315,10 @@ module.exports = (RED: NodeAPI) => {
                 done
             )
         })
+
+        if (self.endpoint?.trim().length && !!self.ws) {
+            await setupWebsocket(self)
+        }
 
         self.status({
             fill: 'green',
