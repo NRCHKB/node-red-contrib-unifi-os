@@ -1,6 +1,3 @@
-type ControllerType =
-    | 'UniFiOSConsole'
-    | 'UniFiNetworkApplication'
-    | 'StandAloneNVR'
+type ControllerType = 'UniFiOSConsole' | 'UniFiNetworkApplication'
 
 export default ControllerType

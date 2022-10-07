@@ -15,7 +15,6 @@ type Endpoints = {
     }
     UniFiOSConsole: Controllers
     UniFiNetworkApplication: Controllers
-    StandAloneNVR: Controllers
 }
 
 export const endpoints: Endpoints = {
@@ -35,15 +34,6 @@ export const endpoints: Endpoints = {
     UniFiNetworkApplication: {
         login: {
             url: '/api/login',
-            retry: 5000,
-        },
-        logout: {
-            url: '/api/logout',
-        },
-    },
-    StandAloneNVR: {
-        login: {
-            url: '/api/auth',
             retry: 5000,
         },
         logout: {
