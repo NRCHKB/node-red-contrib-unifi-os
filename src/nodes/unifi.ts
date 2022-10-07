@@ -1,11 +1,12 @@
-import Axios from 'axios'
-import { NodeAPI } from 'node-red'
 import { logger, loggerSetup } from '@nrchkb/logger'
+import Axios from 'axios'
+import axios from 'axios'
+import { NodeAPI } from 'node-red'
+import * as util from 'util'
+
+import { cookieToObject } from '../lib/cookieHelper'
 import { HttpError } from '../types/HttpError'
 import { UnifiResponse, UnifiResponseMetaMsg } from '../types/UnifiResponse'
-import * as util from 'util'
-import { cookieToObject } from '../lib/cookieHelper'
-import axios from 'axios'
 
 loggerSetup({ timestampEnabled: 'UniFi' })
 
@@ -59,9 +60,9 @@ module.exports = (RED: NodeAPI) => {
             log.trace(util.inspect(response))
             return response
         },
-        function (error) {
+        function (error: any) {
             if (axios.isCancel(error)) {
-                log.trace(error)
+                log.trace(`Request cancelled: ${error.message}`)
                 return Promise.reject(error)
             }
 

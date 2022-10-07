@@ -13,11 +13,10 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: 12
-      - run: |
-          npm i -g yarn
-          yarn install --frozen-lockfile
-          yarn build
-          yarn test
+      - run:
+          npm ci
+          npm run build
+          npm test
 
   publish-npm:
     needs: build
@@ -35,10 +34,9 @@ jobs:
       - name: Publish
         if: contains(steps.package-version.outputs.current-version, 'dev') != true
         run: |
-          npm i -g yarn
-          yarn install --frozen-lockfile
-          yarn build
-          yarn publish
+          npm ci
+          npm run build
+          npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.NODE_TKN}}
 
@@ -57,8 +55,8 @@ jobs:
       - name: Publish
         if: contains(steps.package-version.outputs.current-version, 'dev') != true
         run: |
-          yarn install --frozen-lockfile
-          yarn build
+          npm ci
+          npm run build
           npm init --scope=nrchkb -y
           npm publish
         env:

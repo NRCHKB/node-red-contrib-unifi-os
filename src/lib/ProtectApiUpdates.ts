@@ -1,16 +1,28 @@
-/* Copyright(C) 2021, HJD (https://github.com/hjdhjd). All rights reserved.
+/* Copyright(C) 2019-2022, HJD (https://github.com/hjdhjd). All rights reserved.
  *
  * protect-api-updates.ts: Our UniFi Protect realtime updates event API implementation.
  */
-import zlib from 'zlib'
 import { Loggers } from '@nrchkb/logger/src/types'
+import zlib from 'zlib'
 
-type ProtectCameraLcdMessagePayload = {
-    duration?: number
-    resetAt?: number | null
-    text?: string
-    type?: string
+// This type declaration make all properties optional recursively including nested objects. This should
+// only be used on JSON objects only. Otherwise...you're going to end up with class methods marked as
+// optional as well. Credit for this belongs to: https://github.com/joonhocho/tsdef. #Grateful
+type DeepPartial<T> = {
+    [P in keyof T]?: T[P] extends Array<infer I>
+        ? Array<DeepPartial<I>>
+        : DeepPartial<T[P]>
 }
+
+interface ProtectCameraLcdMessageConfigInterface {
+    duration: number
+    resetAt: number | null
+    text: string
+    type: string
+}
+
+type ProtectCameraLcdMessagePayload =
+    DeepPartial<ProtectCameraLcdMessageConfigInterface>
 
 /*
  * The UniFi Protect realtime updates API is largely undocumented and has been reverse engineered mostly through
@@ -172,7 +184,10 @@ export class ProtectApiUpdates {
                         dataOffset + UpdatePacketHeader.PAYLOAD_SIZE
                     )
             ) {
-                log.error("Packet length doesn't match header information.")
+                // noinspection ExceptionCaughtLocallyJS
+                throw new Error(
+                    "Packet length doesn't match header information."
+                )
             }
         } catch (error: any) {
             log.error(

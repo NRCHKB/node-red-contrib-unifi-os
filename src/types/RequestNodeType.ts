@@ -1,7 +1,8 @@
-import { Node } from 'node-red'
-import RequestNodeConfigType from './RequestNodeConfigType'
-import AccessControllerNodeType from './AccessControllerNodeType'
 import { NodeMessage } from '@node-red/registry'
+import { Node } from 'node-red'
+
+import AccessControllerNodeType from './AccessControllerNodeType'
+import RequestNodeConfigType from './RequestNodeConfigType'
 
 type RequestNodeType = Node & {
     config: RequestNodeConfigType

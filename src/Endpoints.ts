@@ -15,6 +15,7 @@ type Endpoints = {
     }
     UniFiOSConsole: Controllers
     UniFiNetworkApplication: Controllers
+    StandAloneNVR: Controllers
 }
 
 export const endpoints: Endpoints = {

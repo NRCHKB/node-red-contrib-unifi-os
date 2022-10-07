@@ -1,7 +1,8 @@
 import { Node } from 'node-red'
+import WebSocket from 'ws'
+
 import AccessControllerNodeType from './AccessControllerNodeType'
 import WebSocketNodeConfigType from './WebSocketNodeConfigType'
-import WebSocket from 'ws'
 
 type WebSocketNodeType = Node & {
     config: WebSocketNodeConfigType
