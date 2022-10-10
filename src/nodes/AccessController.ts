@@ -43,7 +43,7 @@ module.exports = (RED: NodeAPI) => {
 
         // The Boostrap request
         const getBootstrap = async () => {
-            self.request(self.id, bootstrapURI, 'POST', undefined, 'json')
+            self.request(self.id, bootstrapURI, 'GET', undefined, 'json')
                 .then((res: UnifiResponse) => {
                     self.bootstrapObject = res.data
                 })
