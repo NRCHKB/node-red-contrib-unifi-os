@@ -46,6 +46,8 @@ module.exports = (RED: NodeAPI) => {
             self.request(self.id, bootstrapURI, 'GET', undefined, 'json')
                 .then((res: UnifiResponse) => {
                     self.bootstrapObject = res.data
+                    // Notify All nodes that have an interest in the Bootstrap
+                    RED.events.emit('NRCHKB:UNIFIOS:BOOTSTRAP')
                 })
                 .catch((error: any) => {
                     // Currently, assume they do not have a Protect instance
