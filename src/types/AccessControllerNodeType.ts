@@ -26,6 +26,9 @@ type AccessControllerNodeType = Node & {
     }
     // Either UniFi OS Console for UDM or UniFi Network Application for custom app env
     controllerType: ControllerType
+
+    // The current bootstrap (more importantly the lastUpdateId and Cam ID's)
+    bootstrapObject?: any
 }
 
 export default AccessControllerNodeType

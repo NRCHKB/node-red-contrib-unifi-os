@@ -11,6 +11,8 @@ const {
     AbortController,
 } = require('abortcontroller-polyfill/dist/cjs-ponyfill')
 
+const bootstrapURI = '/proxy/protect/api/bootstrap'
+
 const urlBuilder = (self: AccessControllerNodeType, endpoint?: string) => {
     return (
         endpoints.protocol.base +
@@ -39,6 +41,17 @@ module.exports = (RED: NodeAPI) => {
         self.controllerType = self.config.controllerType ?? 'UniFiOSConsole'
         self.abortController = new AbortController()
 
+        // The Boostrap request
+        const getBootstrap = async () => {
+            self.request(self.id, bootstrapURI, 'POST', undefined, 'json')
+                .then((res: UnifiResponse) => {
+                    self.bootstrapObject = res.data
+                })
+                .catch((error: any) => {
+                    // Currently, assume they do not have a Protect instance
+                })
+        }
+
         const refresh = (init?: boolean) => {
             self.getAuthCookie(true)
                 .catch((error) => {
@@ -46,6 +59,8 @@ module.exports = (RED: NodeAPI) => {
                     log.error('Failed to pre authenticate')
                 })
                 .then(() => {
+                    // Fetch bootstrap (only for Protect)
+                    getBootstrap()
                     if (init) {
                         log.debug('Initialized')
                         self.initialized = true
