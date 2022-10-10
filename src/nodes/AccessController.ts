@@ -41,6 +41,20 @@ module.exports = (RED: NodeAPI) => {
         self.controllerType = self.config.controllerType ?? 'UniFiOSConsole'
         self.abortController = new AbortController()
 
+        // Register an Admin HTTP endpioint - so node config editors can obtain bootstraps (to obtain listings)
+        RED.httpAdmin.get(
+            `/nrchkb/unifi/bootsrap/${self.id}/`,
+            RED.auth.needsPermission('flows.write'),
+            (req, res) => {
+                if (self.bootstrapObject) {
+                    res.status(200).json(self.bootstrapObject)
+                } else {
+                    // lets issue a 501 - Not Implemented for this host, given no Protect bootstrap was available
+                    res.status(501).end()
+                }
+            }
+        )
+
         // The Boostrap request
         const getBootstrap = async () => {
             self.request(self.id, bootstrapURI, 'GET', undefined, 'json')
