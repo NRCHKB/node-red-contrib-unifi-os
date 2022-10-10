@@ -45,7 +45,7 @@ module.exports = (RED: NodeAPI) => {
         RED.httpAdmin.get(
             `/nrchkb/unifi/bootsrap/${self.id}/`,
             RED.auth.needsPermission('flows.write'),
-            (req, res) => {
+            (_req, res) => {
                 if (self.bootstrapObject) {
                     res.status(200).json(self.bootstrapObject)
                 } else {
@@ -59,11 +59,11 @@ module.exports = (RED: NodeAPI) => {
         const getBootstrap = async () => {
             self.request(self.id, bootstrapURI, 'GET', undefined, 'json')
                 .then((res: UnifiResponse) => {
-                    self.bootstrapObject = res.data
+                    self.bootstrapObject = res
                     // Notify All nodes that have an interest in the Bootstrap
                     RED.events.emit('NRCHKB:UNIFIOS:BOOTSTRAP')
                 })
-                .catch((error: any) => {
+                .catch((_error: any) => {
                     // Currently, assume they do not have a Protect instance
                 })
         }
@@ -75,8 +75,6 @@ module.exports = (RED: NodeAPI) => {
                     log.error('Failed to pre authenticate')
                 })
                 .then(() => {
-                    // Fetch bootstrap (only for Protect)
-                    getBootstrap()
                     if (init) {
                         log.debug('Initialized')
                         self.initialized = true
@@ -84,6 +82,8 @@ module.exports = (RED: NodeAPI) => {
                     } else {
                         log.debug('Cookies refreshed')
                     }
+                    // Fetch bootstrap (only for Protect)
+                    getBootstrap()
                 })
         }
 
@@ -229,7 +229,7 @@ module.exports = (RED: NodeAPI) => {
                 }
             )
                 .catch((error) => {
-                    console.error(error)
+                    console.log(error)
                     log.error('Failed to log out')
                 })
                 .then(() => {

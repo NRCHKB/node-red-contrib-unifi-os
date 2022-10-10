@@ -25,7 +25,8 @@
       "unifi": "build/nodes/unifi.js",
       "AccessController": "build/nodes/AccessController.js",
       "Request": "build/nodes/Request.js",
-      "WebSocket": "build/nodes/WebSocket.js"
+      "WebSocket": "build/nodes/WebSocket.js",
+      "Protect": "build/nodes/Protect.js"
     },
     "version": ">=1.3.7"
   },
