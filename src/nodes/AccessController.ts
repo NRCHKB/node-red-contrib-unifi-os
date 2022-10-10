@@ -229,7 +229,7 @@ module.exports = (RED: NodeAPI) => {
                 }
             )
                 .catch((error) => {
-                    console.log(error)
+                    console.error(error)
                     log.error('Failed to log out')
                 })
                 .then(() => {

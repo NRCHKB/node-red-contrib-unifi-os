@@ -96,12 +96,28 @@ module.exports = (RED: NodeAPI) => {
                     })
                 })
         })
+
+        // Remove listeners
+        self.on('close', (done: () => void) => {
+            RED.events.removeListener(
+                'NRCHKB:UNIFIOS:BOOTSTRAP',
+                UpdateWSClient
+            )
+            done()
+        })
+
         self.status({
             fill: 'green',
             shape: 'dot',
             text: 'Initialized',
         })
         log.debug('Initialized')
+
+        // Reconfigure WS Client (or at least check if the update ID has changed and reconnect)
+        const UpdateWSClient = () => {
+            // do tuff
+        }
+        RED.events.on('NRCHKB:UNIFIOS:BOOTSTRAP', UpdateWSClient)
     }
 
     // Register the Protect Node
