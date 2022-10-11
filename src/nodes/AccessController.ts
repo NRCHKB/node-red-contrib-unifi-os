@@ -6,6 +6,7 @@ import * as https from 'https'
 import { HttpError } from '../types/HttpError'
 import { endpoints } from '../Endpoints'
 import { UnifiResponse } from '../types/UnifiResponse'
+import { SharedProtectWebSocket } from './SharedProtectWebSocket'
 import { logger } from '@nrchkb/logger'
 const {
     AbortController,
@@ -56,14 +57,25 @@ module.exports = (RED: NodeAPI) => {
         )
 
         // The Boostrap request
-        const getBootstrap = async () => {
+        const getBootstrap = async (init?: boolean) => {
             self.request(self.id, bootstrapURI, 'GET', undefined, 'json')
                 .then((res: UnifiResponse) => {
                     self.bootstrapObject = res
-                    // Notify All nodes that have an interest in the Bootstrap
-                    RED.events.emit('NRCHKB:UNIFIOS:BOOTSTRAP')
+
+                    if (init) {
+                        // Fire up a shared websocket to the Protect WS endpoint
+                        self.protectSharedWS = new SharedProtectWebSocket(
+                            self.config,
+                            self.bootstrapObject
+                        )
+                    } else {
+                        // Update the shared websocket to the Protect WS endpoint, so we can connect to its new lastUpdateId
+                        self.protectSharedWS?.updateLastUpdateId(
+                            self.bootstrapObject
+                        )
+                    }
                 })
-                .catch((_error: any) => {
+                .catch((_error) => {
                     // Currently, assume they do not have a Protect instance
                 })
         }
@@ -83,7 +95,7 @@ module.exports = (RED: NodeAPI) => {
                         log.debug('Cookies refreshed')
                     }
                     // Fetch bootstrap (only for Protect)
-                    getBootstrap()
+                    getBootstrap(init)
                 })
         }
 

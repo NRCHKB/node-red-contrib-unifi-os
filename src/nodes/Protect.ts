@@ -97,27 +97,19 @@ module.exports = (RED: NodeAPI) => {
                 })
         })
 
-        // Remove listeners
-        self.on('close', (done: () => void) => {
-            RED.events.removeListener(
-                'NRCHKB:UNIFIOS:BOOTSTRAP',
-                UpdateWSClient
-            )
-            done()
-        })
-
         self.status({
             fill: 'green',
             shape: 'dot',
             text: 'Initialized',
         })
-        log.debug('Initialized')
 
-        // Reconfigure WS Client (or at least check if the update ID has changed and reconnect)
-        const UpdateWSClient = () => {
-            // do tuff
+        // Register our interest in Protect Updates.
+        const handleUpdate = () => {
+            //
         }
-        RED.events.on('NRCHKB:UNIFIOS:BOOTSTRAP', UpdateWSClient)
+        self.accessControllerNode.protectSharedWS?.on('update', handleUpdate)
+
+        log.debug('Initialized')
     }
 
     // Register the Protect Node
