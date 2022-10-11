@@ -1,83 +1,87 @@
 <script type="text/javascript">
-    RED.nodes.registerType('unifi-protect',
-        {
-            category: 'UniFi',
-            defaults:
-                {
-                    name: {
-                        value: '',
-                        required: false
-                    },
-                    accessControllerNodeId: {
-                        value: '',
-                        type: 'unifi-access-controller',
-                        required: true
-                    },
-                    cameraId: {
-                        value: '',
-                        required: true
-                    }
-                },
-            inputs: 1,
-            outputs: 1,
-            icon: 'protect.png',
-            color: '#159eda',
-            label: function () {
-                return this.name || "Unifi Protect Camera";
+    RED.nodes.registerType('unifi-protect', {
+        category: 'UniFi',
+        defaults: {
+            name: {
+                value: '',
+                required: false,
             },
-            labelStyle: function () {
-                return this.name ? 'node_label_italic' : ''
+            accessControllerNodeId: {
+                value: '',
+                type: 'unifi-access-controller',
+                required: true,
             },
-            oneditprepare: function () {
-
-                if(this.accessControllerNodeId){
-                    listCameras(this.accessControllerNodeId);
-                }
-
-                $("#node-input-accessControllerNodeId").change(() =>{
-                    const ControllerID = $("#node-input-accessControllerNodeId").val()
-                    listCameras(ControllerID);
-                })
-
+            cameraId: {
+                value: '',
+                required: true,
+            },
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'protect.png',
+        color: '#159eda',
+        label: function () {
+            return this.name || 'Unifi Protect Camera'
+        },
+        labelStyle: function () {
+            return this.name ? 'node_label_italic' : ''
+        },
+        oneditprepare: function () {
+            if (this.accessControllerNodeId) {
+                listCameras(this.accessControllerNodeId)
+                $('#node-input-cameraId').val(this.accessControllerNodeId)
             }
-        })
 
-    function listCameras(ControllerID){
-
-        $("#node-input-cameraId").empty()
-        $("#node-input-cameraId").append(`<option value="">Choose...</option>`)
-
-        if(ControllerID && ControllerID !== '_ADD_'){
-            $.getJSON(`nrchkb/unifi/bootsrap/${ControllerID}`,(data) => {
-                data.cameras.forEach((Camera) =>{
-                    $("#node-input-cameraId").append(`<option value="${Camera.id}">${Camera.name} (${Camera.type})</option>`)
-                })
+            $('#node-input-accessControllerNodeId').change(() => {
+                const ControllerID = $(
+                    '#node-input-accessControllerNodeId'
+                ).val()
+                listCameras(ControllerID)
             })
-            .fail(function() { alert('This Unifi OS Console, does not appear to have a Protect Instance configured.'); })
+        },
+    })
+
+    function listCameras(ControllerID) {
+        $('#node-input-cameraId').empty()
+        $('#node-input-cameraId').append(`<option value="">Choose...</option>`)
+
+        if (ControllerID && ControllerID !== '_ADD_') {
+            $.getJSON(`nrchkb/unifi/bootsrap/${ControllerID}`, (data) => {
+                data.cameras.forEach((Camera) => {
+                    $('#node-input-cameraId').append(
+                        `<option value="${Camera.id}">${Camera.name} (${Camera.type})</option>`
+                    )
+                })
+            }).fail(function () {
+                alert(
+                    'This Unifi OS Console, does not appear to have a Protect Instance configured.'
+                )
+            })
         }
     }
-
 </script>
 
 <script data-template-name="unifi-protect" type="text/html">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name">
+        <input type="text" id="node-input-name" placeholder="Name" />
     </div>
     <div class="form-row">
-        <label for="node-input-accessControllerNodeId"><i class="fa fa-globe"></i> Controller</label>
+        <label for="node-input-accessControllerNodeId"
+            ><i class="fa fa-globe"></i> Controller</label
+        >
         <select id="node-input-accessControllerNodeId">
             <option value="">Choose...</option>
         </select>
     </div>
     <div class="form-row">
-        <label for="node-input-cameraId"><i class="fa fa-video-camera"></i> Camera</label>
+        <label for="node-input-cameraId"
+            ><i class="fa fa-video-camera"></i> Camera</label
+        >
         <select id="node-input-cameraId">
             <option value="">Choose...</option>
-          
         </select>
     </div>
-    
 </script>
 
 <script data-help-name="unifi-protect" type="text/html">

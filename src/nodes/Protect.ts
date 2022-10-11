@@ -2,6 +2,7 @@ import { NodeAPI } from 'node-red'
 import ProtectNodeType from '../types/ProtectNodeType'
 import ProtectNodeConfigType from '../types/ProtectNodeConfigType'
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
+import { Interest } from './SharedProtectWebSocket'
 import { logger } from '@nrchkb/logger'
 import util from 'util'
 
@@ -60,6 +61,11 @@ module.exports = (RED: NodeAPI) => {
         const self = this
         const log = logger('UniFi', 'Protect', self.name, self)
 
+        self.on('close', (done: () => void) => {
+            self.accessControllerNode.protectSharedWS?.degisterInterest(self.id)
+            done()
+        })
+
         self.on('input', (msg) => {
             log.debug('Received input message: ' + util.inspect(msg))
             const Path = getReqPath('cameras', self.config.cameraId)
@@ -104,10 +110,16 @@ module.exports = (RED: NodeAPI) => {
         })
 
         // Register our interest in Protect Updates.
-        const handleUpdate = () => {
-            //
+        const handleUpdate = (data: any) => {
+            self.send({
+                payload: data,
+            })
         }
-        self.accessControllerNode.protectSharedWS?.on('update', handleUpdate)
+        const I: Interest = {
+            deviceId: this.config.cameraId,
+            callback: handleUpdate,
+        }
+        self.accessControllerNode.protectSharedWS?.registerInterest(self.id, I)
 
         log.debug('Initialized')
     }

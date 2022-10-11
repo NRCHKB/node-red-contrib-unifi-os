@@ -65,6 +65,7 @@ module.exports = (RED: NodeAPI) => {
                     if (init) {
                         // Fire up a shared websocket to the Protect WS endpoint
                         self.protectSharedWS = new SharedProtectWebSocket(
+                            self,
                             self.config,
                             self.bootstrapObject
                         )
