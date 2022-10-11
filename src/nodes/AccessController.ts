@@ -55,6 +55,25 @@ module.exports = (RED: NodeAPI) => {
                 }
             }
         )
+        // Remove HTTP Endpoint
+        const RemoveAdminEP = () => {
+            const Check = (Route: any) => {
+                if (Route.route === undefined) {
+                    return true
+                }
+                if (
+                    !Route.route.path.startsWith(
+                        `/nrchkb/unifi/bootsrap/${self.id}`
+                    )
+                ) {
+                    return true
+                }
+
+                return false
+            }
+            RED.httpAdmin._router.stack =
+                RED.httpAdmin._router.stack.filter(Check)
+        }
 
         // The Boostrap request
         const getBootstrap = async (init?: boolean) => {
@@ -224,6 +243,7 @@ module.exports = (RED: NodeAPI) => {
         self.on('close', () => {
             self.stopped = true
             clearTimeout(refreshTimeout)
+            RemoveAdminEP()
             self.protectSharedWS?.Shutdown()
             self.abortController.abort()
 
