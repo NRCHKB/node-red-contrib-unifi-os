@@ -10,9 +10,8 @@ import * as crypto from 'crypto'
 /**
  * DEFAULT_RECONNECT_TIMEOUT is to wait until next try to connect web socket in case of error or server side closed socket (for example UniFi restart)
  */
-//const DEFAULT_RECONNECT_TIMEOUT = 90000
+const DEFAULT_RECONNECT_TIMEOUT = 90000
 export type WSDataCallback = (data: any) => void
-
 export interface Interest {
     deviceId: string
     callback: WSDataCallback
@@ -39,22 +38,30 @@ export class SharedProtectWebSocket {
         const id = crypto.randomBytes(16).toString('hex')
         this.WSLogger = logger(
             'UniFi',
-            `SharedWebSocket:${id}`,
-            undefined,
+            `WebSocket:${id}`,
+            'SharedProtectWebSocket',
             undefined
         )
 
-        this.Connect()
-            .then(() => {
-                console.log('Shared socket connected')
-            })
-            .catch((Error) => {
-                console.error(Error)
-            })
+        this.Connect().catch((Error) => {
+            console.error(Error)
+        })
     }
 
-    Connect(): Promise<void> {
-        return new Promise(async (res, _rej) => {
+    Shutdown(): void {
+        this.Disconnect()
+        this.callbacks = {}
+    }
+
+    private Disconnect(): void {
+        this.WS?.removeAllListeners()
+        this.WS?.close(1000)
+        this.WS?.terminate()
+        this.WS = undefined
+    }
+
+    private Connect(): Promise<void> {
+        return new Promise(async (resolve, reject) => {
             const url = `${endpoints.protocol.webSocket}${this.Config.controllerIp}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
 
             this.WS = new WebSocket(url, {
@@ -66,24 +73,44 @@ export class SharedProtectWebSocket {
                 },
             })
 
-            this.WS.on('message', (data) => {
-                let objectToSend: any
-
-                try {
-                    objectToSend = JSON.parse(data.toString())
-                } catch (_) {
-                    objectToSend = ProtectApiUpdates.decodeUpdatePacket(
-                        this.WSLogger,
-                        data as Buffer
-                    )
-                }
-
-                Object.keys(this.callbacks).forEach((Node) => {
-                    this.callbacks[Node].callback(objectToSend)
-                })
+            this.WS.on('error', (error) => {
+                this.WSLogger.error(`${error}`)
+                reject(error)
+                setTimeout(() => {
+                    this.Connect().catch((Error) => {
+                        console.error(Error)
+                    })
+                }, DEFAULT_RECONNECT_TIMEOUT)
             })
 
-            res()
+            this.WS.on('open', () => {
+                this.WSLogger.debug(`Connection to ${url} open`)
+                this.WS?.on('message', (data) => {
+                    let objectToSend: any
+
+                    try {
+                        objectToSend = JSON.parse(data.toString())
+                    } catch (_) {
+                        objectToSend = ProtectApiUpdates.decodeUpdatePacket(
+                            this.WSLogger,
+                            data as Buffer
+                        )
+                    }
+
+                    Object.keys(this.callbacks).forEach((Node) => {
+                        this.callbacks[Node].callback(objectToSend)
+                    })
+                })
+
+                this.WS?.on('close', () => {
+                    setTimeout(() => {
+                        this.Connect().catch((Error) => {
+                            console.error(Error)
+                        })
+                    }, DEFAULT_RECONNECT_TIMEOUT)
+                })
+                resolve()
+            })
         })
     }
 
@@ -93,10 +120,20 @@ export class SharedProtectWebSocket {
 
     registerInterest(nodeId: string, interest: Interest): void {
         this.callbacks[nodeId] = interest
-        console.log(this.callbacks)
     }
 
     updateLastUpdateId(newBootstrap: any): void {
-        this.bootstrap = newBootstrap
+        if (newBootstrap.lastUpdateId !== this.bootstrap.lastUpdateId) {
+            this.WSLogger.debug(
+                'New lastUpdateId received, re-configuring Shared socket'
+            )
+            this.bootstrap = newBootstrap
+            this.Disconnect()
+            this.Connect().catch((Error) => {
+                console.error(Error)
+            })
+        } else {
+            this.bootstrap = newBootstrap
+        }
     }
 }

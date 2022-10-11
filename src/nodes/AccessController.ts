@@ -76,7 +76,7 @@ module.exports = (RED: NodeAPI) => {
                         )
                     }
                 })
-                .catch((_error) => {
+                .catch((_) => {
                     // Currently, assume they do not have a Protect instance
                 })
         }
@@ -224,6 +224,7 @@ module.exports = (RED: NodeAPI) => {
         self.on('close', () => {
             self.stopped = true
             clearTimeout(refreshTimeout)
+            self.protectSharedWS?.Shutdown()
             self.abortController.abort()
 
             const url = urlBuilder(
