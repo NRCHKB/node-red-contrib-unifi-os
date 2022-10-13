@@ -185,7 +185,7 @@ module.exports = (RED: NodeAPI) => {
                     }
                     self.send(UserPL)
 
-                    delete WaitingForEnd[data.action.action.id]
+                    delete WaitingForEnd[data.action.id]
                 }
             } else {
                 let IdentifiedEvent: Eventdef = {}
@@ -211,6 +211,7 @@ module.exports = (RED: NodeAPI) => {
 
                     const UserPL = {
                         payload: {
+                            HT:WaitingForEnd,
                             event: IdentifiedEvent?.label,
                             id: data.action.id,
                             durationType: IdentifiedEvent?.hasEnd
@@ -223,7 +224,7 @@ module.exports = (RED: NodeAPI) => {
                     self.send(UserPL)
 
                     if (IdentifiedEvent.hasEnd) {
-                        WaitingForEnd[data.action.id] = UserPL
+                        WaitingForEnd[data.action.id] = JSON.parse(JSON.stringify(UserPL))
                     }
                 }
             }
