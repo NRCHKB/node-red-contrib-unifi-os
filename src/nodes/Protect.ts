@@ -33,7 +33,7 @@ module.exports = (RED: NodeAPI) => {
         {
             action: 'add',
             type: 'ring',
-            label: 'Door Bell Activation',
+            label: 'Door Bell Ring',
             selectValue: 'bell',
             hasEnd: false,
         },
