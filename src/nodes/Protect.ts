@@ -192,7 +192,7 @@ module.exports = (RED: NodeAPI) => {
                 const MatchedEvents = EventMaps.filter(
                     (M) =>
                         M.action === data.action.action &&
-                        M.type === data.paylod.type
+                        M.type === data.payload.type
                 )
 
                 if (MatchedEvents.length > 0) {
