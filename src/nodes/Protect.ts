@@ -178,8 +178,10 @@ module.exports = (RED: NodeAPI) => {
                         payload: {
                             event: StartOfEvent.payload.event,
                             id: data.action.id,
-                            durationType: 'EndOfEvent',
+                            eventStatus: 'Stopped',
                             date: data.payload.end,
+                            duration:
+                                StartOfEvent.payload.start - data.payload.end,
                         },
                         originalEventData: data,
                     }
@@ -213,19 +215,17 @@ module.exports = (RED: NodeAPI) => {
                         payload: {
                             event: IdentifiedEvent?.label,
                             id: data.action.id,
-                            durationType: IdentifiedEvent?.hasEnd
-                                ? 'StartOfEvent'
+                            eventStatus: IdentifiedEvent?.hasEnd
+                                ? 'Started'
                                 : 'SingleEvent',
                             date: data.payload.start,
                         },
                         originalEventData: data,
                     }
                     self.send(UserPL)
-
                     if (IdentifiedEvent.hasEnd) {
-                        WaitingForEnd[data.action.id] = JSON.parse(
-                            JSON.stringify(UserPL)
-                        )
+                        WaitingForEnd[data.action.id] =
+                            RED.util.cloneMessage(UserPL)
                     }
                 }
             }
