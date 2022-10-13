@@ -12,6 +12,57 @@ module.exports = (RED: NodeAPI) => {
         return `${ReqRootPath}/${Type}/${ID}`
     }
 
+    interface Eventdef {
+        action?: string
+        type?: string
+        label?: string
+        smartDetectTypes?: string
+        selectValue?: string
+        hasEnd?: boolean
+    }
+
+    // The event Map
+    const EventMaps: Eventdef[] = [
+        {
+            action: 'add',
+            type: 'motion',
+            label: 'Motion Detected',
+            selectValue: 'motion',
+            hasEnd: true,
+        },
+        {
+            action: 'add',
+            type: 'ring',
+            label: 'Door Bell Activation',
+            selectValue: 'bell',
+            hasEnd: false,
+        },
+        {
+            action: 'add',
+            type: 'smartDetectZone',
+            smartDetectTypes: 'vehicle',
+            label: 'Vehicle Detected',
+            selectValue: 'vehicle',
+            hasEnd: true,
+        },
+        {
+            action: 'add',
+            type: 'smartDetectZone',
+            smartDetectTypes: 'package',
+            label: 'Package Detected',
+            selectValue: 'package',
+            hasEnd: false,
+        },
+        {
+            action: 'add',
+            type: 'smartDetectZone',
+            smartDetectTypes: 'person',
+            label: 'Person Detected',
+            selectValue: 'person',
+            hasEnd: true,
+        },
+    ]
+
     const init = function (
         this: ProtectNodeType,
         config: ProtectNodeConfigType
@@ -109,12 +160,75 @@ module.exports = (RED: NodeAPI) => {
             text: 'Initialized',
         })
 
+        // Used to store the Start of an event with a duration.
+        const WaitingForEnd: any = {}
+
         // Register our interest in Protect Updates.
         const handleUpdate = (data: any) => {
-            self.send({
-                payload: data,
-            })
+            // check if this is the end of an event
+            if (
+                data.action.action === 'update' &&
+                data.payload.end !== undefined
+            ) {
+                // obtain start
+                const StartOfEvent = WaitingForEnd[data.action.action.id]
+
+                if (StartOfEvent !== undefined) {
+                    const UserPL = {
+                        payload: {
+                            event: StartOfEvent.payload.event,
+                            id: data.action.id,
+                            durationType: 'EndOfEvent',
+                            date: data.payload.end,
+                        },
+                        originalEventData: data,
+                    }
+                    self.send(UserPL)
+
+                    delete WaitingForEnd[data.action.action.id]
+                }
+            } else {
+                let IdentifiedEvent: Eventdef = {}
+                const MatchedEvents = EventMaps.filter(
+                    (M) =>
+                        M.action === data.action.action &&
+                        M.type === data.paylod.type
+                )
+
+                if (MatchedEvents.length > 0) {
+                    if (
+                        data.payload.smartDetectTypes !== undefined &&
+                        data.payload.smartDetectTypes.length > 0
+                    ) {
+                        IdentifiedEvent = MatchedEvents.filter(
+                            (M) =>
+                                M.smartDetectTypes ===
+                                data.payload.smartDetectTypes[0]
+                        )[0]
+                    } else {
+                        IdentifiedEvent = MatchedEvents[0]
+                    }
+
+                    const UserPL = {
+                        payload: {
+                            event: IdentifiedEvent?.label,
+                            id: data.action.id,
+                            durationType: IdentifiedEvent?.hasEnd
+                                ? 'StartOfEvent'
+                                : 'SingleEvent',
+                            date: data.payload.start,
+                        },
+                        originalEventData: data,
+                    }
+                    self.send(UserPL)
+
+                    if (IdentifiedEvent.hasEnd) {
+                        WaitingForEnd[data.action.id] = UserPL
+                    }
+                }
+            }
         }
+
         const I: Interest = {
             deviceId: this.config.cameraId,
             callback: handleUpdate,
