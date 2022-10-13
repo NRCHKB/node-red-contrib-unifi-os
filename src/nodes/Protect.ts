@@ -171,7 +171,7 @@ module.exports = (RED: NodeAPI) => {
                 data.payload.end !== undefined
             ) {
                 // obtain start
-                const StartOfEvent = WaitingForEnd[data.action.action.id]
+                const StartOfEvent = WaitingForEnd[data.action.id]
 
                 if (StartOfEvent !== undefined) {
                     const UserPL = {
