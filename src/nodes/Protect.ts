@@ -211,7 +211,6 @@ module.exports = (RED: NodeAPI) => {
 
                     const UserPL = {
                         payload: {
-                            HT:WaitingForEnd,
                             event: IdentifiedEvent?.label,
                             id: data.action.id,
                             durationType: IdentifiedEvent?.hasEnd
@@ -224,7 +223,9 @@ module.exports = (RED: NodeAPI) => {
                     self.send(UserPL)
 
                     if (IdentifiedEvent.hasEnd) {
-                        WaitingForEnd[data.action.id] = JSON.parse(JSON.stringify(UserPL))
+                        WaitingForEnd[data.action.id] = JSON.parse(
+                            JSON.stringify(UserPL)
+                        )
                     }
                 }
             }
