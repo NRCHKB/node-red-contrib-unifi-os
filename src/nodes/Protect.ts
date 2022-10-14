@@ -137,11 +137,11 @@ module.exports = (RED: NodeAPI) => {
                             eventId: data.action.id,
                             eventStatus: 'Stopped',
                             timestamps: {
-                                start: StartOfEvent.payload.start,
+                                start: StartOfEvent.payload.timestamps.start,
                                 end: data.payload.end,
                                 duration:
                                     data.payload.end -
-                                    StartOfEvent.payload.start,
+                                    StartOfEvent.payload.timestamps.start,
                             },
                         },
                         originalEventData: data,
