@@ -128,11 +128,13 @@ module.exports = (RED: NodeAPI) => {
                 // obtain start
                 const StartOfEvent = WaitingForEnd[data.action.id]
 
+                // Grab Camera
+
                 if (StartOfEvent) {
                     const UserPL: any = {
                         payload: {
-                            camera: '',
-                            cameraId: '',
+                            camera: StartOfEvent.camera,
+                            cameraId: StartOfEvent.cameraId,
                             event: StartOfEvent.payload.event,
                             eventId: data.action.id,
                             eventStatus: 'Stopped',
@@ -161,15 +163,19 @@ module.exports = (RED: NodeAPI) => {
                         IdentifiedEvent = EM
                     }
                 })
-
                 if (
                     IdentifiedEvent &&
                     self.config.eventIds.includes(IdentifiedEvent.metadata.id)
                 ) {
+                    const Camera =
+                        self.accessControllerNode.bootstrapObject.cameras.filter(
+                            (C: any) => C.id === self.config.cameraId
+                        )[0]
+
                     const UserPL: any = {
                         payload: {
-                            camera: '',
-                            cameraId: '',
+                            camera: `${Camera.name} (${Camera.type})`,
+                            cameraId: Camera.id,
                             event: IdentifiedEvent?.metadata.label,
                             eventId: data.action.id,
                             eventStatus: IdentifiedEvent?.metadata.hasDuration
