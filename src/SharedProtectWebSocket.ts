@@ -99,7 +99,10 @@ export class SharedProtectWebSocket {
 
                     Object.keys(this.callbacks).forEach((Node) => {
                         const Interest = this.callbacks[Node]
-                        if (Interest.deviceId === objectToSend.payload.camera) {
+                        if (
+                            Interest.deviceId === objectToSend.payload.camera ||
+                            objectToSend.payload.camera === undefined
+                        ) {
                             Interest.callback(objectToSend)
                         }
                     })

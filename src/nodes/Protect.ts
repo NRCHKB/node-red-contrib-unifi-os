@@ -15,7 +15,7 @@ module.exports = (RED: NodeAPI) => {
     }
 
     const cloneObject = (data: any): any => {
-        return JSON.stringify(JSON.parse(data))
+        return JSON.parse(JSON.stringify(data))
     }
 
     const init = function (
