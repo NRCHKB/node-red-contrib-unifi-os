@@ -1,8 +1,8 @@
 import WebSocket from 'ws'
-import AccessControllerNodeConfigType from '../types/AccessControllerNodeConfigType'
-import AccessControllerNodeType from '../types/AccessControllerNodeType'
-import { endpoints } from '../Endpoints'
-import { ProtectApiUpdates } from '../lib/ProtectApiUpdates'
+import AccessControllerNodeConfigType from './types/AccessControllerNodeConfigType'
+import AccessControllerNodeType from './types/AccessControllerNodeType'
+import { endpoints } from './Endpoints'
+import { ProtectApiUpdates } from './lib/ProtectApiUpdates'
 import { logger } from '@nrchkb/logger'
 import { Loggers } from '@nrchkb/logger/src/types'
 import * as crypto from 'crypto'
@@ -98,7 +98,10 @@ export class SharedProtectWebSocket {
                     }
 
                     Object.keys(this.callbacks).forEach((Node) => {
-                        this.callbacks[Node].callback(objectToSend)
+                        const Interest = this.callbacks[Node]
+                        if (Interest.deviceId === objectToSend.payload.camera) {
+                            Interest.callback(objectToSend)
+                        }
                     })
                 })
 

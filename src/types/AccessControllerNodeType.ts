@@ -3,7 +3,7 @@ import { Node } from 'node-red'
 import AccessControllerNodeConfigType from './AccessControllerNodeConfigType'
 import { UnifiResponse } from './UnifiResponse'
 import ControllerType from './ControllerType'
-import { SharedProtectWebSocket } from '../nodes/SharedProtectWebSocket'
+import { SharedProtectWebSocket } from '../SharedProtectWebSocket'
 
 type AccessControllerNodeType = Node & {
     config: AccessControllerNodeConfigType

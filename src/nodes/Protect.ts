@@ -2,9 +2,11 @@ import { NodeAPI } from 'node-red'
 import ProtectNodeType from '../types/ProtectNodeType'
 import ProtectNodeConfigType from '../types/ProtectNodeConfigType'
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
-import { Interest } from './SharedProtectWebSocket'
+import { Interest } from '../SharedProtectWebSocket'
 import { logger } from '@nrchkb/logger'
 import util from 'util'
+import EventModels, { UnifiEventModel } from '../EventModels'
+import { isMatch } from 'lodash'
 
 module.exports = (RED: NodeAPI) => {
     const ReqRootPath = '/proxy/protect/api'
@@ -12,56 +14,9 @@ module.exports = (RED: NodeAPI) => {
         return `${ReqRootPath}/${Type}/${ID}`
     }
 
-    interface Eventdef {
-        action?: string
-        type?: string
-        label?: string
-        smartDetectTypes?: string
-        selectValue?: string
-        hasEnd?: boolean
+    const cloneObject = (data: any): any => {
+        return JSON.stringify(JSON.parse(data))
     }
-
-    // The event Map
-    const EventMaps: Eventdef[] = [
-        {
-            action: 'add',
-            type: 'motion',
-            label: 'Motion Detected',
-            selectValue: 'motion',
-            hasEnd: true,
-        },
-        {
-            action: 'add',
-            type: 'ring',
-            label: 'Door Bell Ring',
-            selectValue: 'bell',
-            hasEnd: false,
-        },
-        {
-            action: 'add',
-            type: 'smartDetectZone',
-            smartDetectTypes: 'vehicle',
-            label: 'Vehicle Detected',
-            selectValue: 'vehicle',
-            hasEnd: true,
-        },
-        {
-            action: 'add',
-            type: 'smartDetectZone',
-            smartDetectTypes: 'package',
-            label: 'Package Detected',
-            selectValue: 'package',
-            hasEnd: false,
-        },
-        {
-            action: 'add',
-            type: 'smartDetectZone',
-            smartDetectTypes: 'person',
-            label: 'Person Detected',
-            selectValue: 'person',
-            hasEnd: true,
-        },
-    ]
 
     const init = function (
         this: ProtectNodeType,
@@ -173,59 +128,62 @@ module.exports = (RED: NodeAPI) => {
                 // obtain start
                 const StartOfEvent = WaitingForEnd[data.action.id]
 
-                if (StartOfEvent !== undefined) {
-                    const UserPL = {
+                if (StartOfEvent) {
+                    const UserPL: any = {
                         payload: {
+                            camera: '',
+                            cameraId: '',
                             event: StartOfEvent.payload.event,
-                            id: data.action.id,
+                            eventId: data.action.id,
                             eventStatus: 'Stopped',
-                            date: data.payload.end,
-                            duration:
-                                StartOfEvent.payload.start - data.payload.end,
+                            timestamps: {
+                                start: StartOfEvent.payload.start,
+                                end: data.payload.end,
+                                duration:
+                                    data.payload.end -
+                                    StartOfEvent.payload.start,
+                            },
                         },
                         originalEventData: data,
+                    }
+                    if (data.payload.score !== undefined) {
+                        UserPL.payload.score = data.payload.score
                     }
                     self.send(UserPL)
 
                     delete WaitingForEnd[data.action.id]
                 }
             } else {
-                let IdentifiedEvent: Eventdef = {}
-                const MatchedEvents = EventMaps.filter(
-                    (M) =>
-                        M.action === data.action.action &&
-                        M.type === data.payload.type
-                )
+                let IdentifiedEvent: UnifiEventModel | undefined
 
-                if (MatchedEvents.length > 0) {
-                    if (
-                        data.payload.smartDetectTypes !== undefined &&
-                        data.payload.smartDetectTypes.length > 0
-                    ) {
-                        IdentifiedEvent = MatchedEvents.filter(
-                            (M) =>
-                                M.smartDetectTypes ===
-                                data.payload.smartDetectTypes[0]
-                        )[0]
-                    } else {
-                        IdentifiedEvent = MatchedEvents[0]
+                EventModels.forEach((EM) => {
+                    if (isMatch(data, EM.shapeProfile)) {
+                        IdentifiedEvent = EM
                     }
+                })
 
-                    const UserPL = {
+                if (
+                    IdentifiedEvent &&
+                    self.config.eventIds.includes(IdentifiedEvent.metadata.id)
+                ) {
+                    const UserPL: any = {
                         payload: {
-                            event: IdentifiedEvent?.label,
-                            id: data.action.id,
-                            eventStatus: IdentifiedEvent?.hasEnd
+                            camera: '',
+                            cameraId: '',
+                            event: IdentifiedEvent?.metadata.label,
+                            eventId: data.action.id,
+                            eventStatus: IdentifiedEvent?.metadata.hasDuration
                                 ? 'Started'
                                 : 'SingleEvent',
-                            date: data.payload.start,
+                            timestamps: {
+                                start: data.payload.start,
+                            },
                         },
                         originalEventData: data,
                     }
                     self.send(UserPL)
-                    if (IdentifiedEvent.hasEnd) {
-                        WaitingForEnd[data.action.id] =
-                            RED.util.cloneMessage(UserPL)
+                    if (IdentifiedEvent.metadata.hasDuration) {
+                        WaitingForEnd[data.action.id] = cloneObject(UserPL)
                     }
                 }
             }

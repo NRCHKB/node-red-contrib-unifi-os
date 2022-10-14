@@ -1,4 +1,5 @@
 <script type="text/javascript">
+    let selectedCamera;
     RED.nodes.registerType('unifi-protect', {
         category: 'UniFi',
         defaults: {
@@ -15,6 +16,10 @@
                 value: '',
                 required: true,
             },
+            eventIds: {
+                value: [],
+                required: true,
+            },
         },
         inputs: 1,
         outputs: 1,
@@ -27,6 +32,11 @@
             return this.name ? 'node_label_italic' : ''
         },
         oneditprepare: function () {
+
+            if(this.cameraId){
+                selectedCamera = this.cameraId;
+            }
+
             if (this.accessControllerNodeId) {
                 listCameras(this.accessControllerNodeId)
                 $('#node-input-cameraId').val(this.accessControllerNodeId)
@@ -50,8 +60,10 @@
                 data.cameras.forEach((Camera) => {
                     $('#node-input-cameraId').append(
                         `<option value="${Camera.id}">${Camera.name} (${Camera.type})</option>`
-                    )
-                })
+                    )})
+                    if(selectedCamera){
+                        $('#node-input-cameraId').val(selectedCamera)
+                    }
             }).fail(function () {
                 alert(
                     'This Unifi OS Console, does not appear to have a Protect Instance configured.'
@@ -67,19 +79,25 @@
         <input type="text" id="node-input-name" placeholder="Name" />
     </div>
     <div class="form-row">
-        <label for="node-input-accessControllerNodeId"
-            ><i class="fa fa-globe"></i> Controller</label
-        >
+        <label for="node-input-accessControllerNodeId"><i class="fa fa-globe"></i> Controller</label>
         <select id="node-input-accessControllerNodeId">
             <option value="">Choose...</option>
         </select>
     </div>
     <div class="form-row">
-        <label for="node-input-cameraId"
-            ><i class="fa fa-video-camera"></i> Camera</label
-        >
+        <label for="node-input-cameraId"><i class="fa fa-video-camera"></i> Camera</label >
         <select id="node-input-cameraId">
             <option value="">Choose...</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-eventIds"><i class="fa fa-list"></i> Events</label >
+        <select id="node-input-eventIds" multiple style="height:120px">
+            <option value="MotionEvent">Motion Event</option>
+            <option value="DoorBell">Door Bell Ring</option>
+            <option value="Package">Package Detected</option>
+            <option value="Vehicle">Vehicle Detected</option>
+            <option value="Person">Person Detected</option>
         </select>
     </div>
 </script>

@@ -6,7 +6,7 @@ import * as https from 'https'
 import { HttpError } from '../types/HttpError'
 import { endpoints } from '../Endpoints'
 import { UnifiResponse } from '../types/UnifiResponse'
-import { SharedProtectWebSocket } from './SharedProtectWebSocket'
+import { SharedProtectWebSocket } from '../SharedProtectWebSocket'
 import { logger } from '@nrchkb/logger'
 const {
     AbortController,
