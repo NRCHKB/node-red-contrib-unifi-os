@@ -133,8 +133,9 @@ module.exports = (RED: NodeAPI) => {
                 if (StartOfEvent) {
                     const UserPL: any = {
                         payload: {
-                            camera: StartOfEvent.camera,
-                            cameraId: StartOfEvent.cameraId,
+                            cameraName: StartOfEvent.payload.cameraName,
+                            cameraType: StartOfEvent.payload.cameraType,
+                            cameraId: StartOfEvent.payload.cameraId,
                             event: StartOfEvent.payload.event,
                             eventId: data.action.id,
                             eventStatus: 'Stopped',
@@ -174,7 +175,8 @@ module.exports = (RED: NodeAPI) => {
 
                     const UserPL: any = {
                         payload: {
-                            camera: `${Camera.name} (${Camera.type})`,
+                            cameraName: Camera.name,
+                            cameraType: Camera.type,
                             cameraId: Camera.id,
                             event: IdentifiedEvent?.metadata.label,
                             eventId: data.action.id,
