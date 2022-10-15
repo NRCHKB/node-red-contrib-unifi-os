@@ -128,32 +128,19 @@ module.exports = (RED: NodeAPI) => {
                 // obtain start
                 const StartOfEvent = WaitingForEnd[data.action.id]
 
-                // Grab Camera
-
                 if (StartOfEvent) {
                     const UserPL: any = {
-                        payload: {
-                            cameraName: StartOfEvent.payload.cameraName,
-                            cameraType: StartOfEvent.payload.cameraType,
-                            cameraId: StartOfEvent.payload.cameraId,
-                            event: StartOfEvent.payload.event,
-                            eventId: data.action.id,
-                            eventStatus: 'Stopped',
-                            timestamps: {
-                                start: StartOfEvent.payload.timestamps.start,
-                                end: data.payload.end,
-                                duration:
-                                    data.payload.end -
-                                    StartOfEvent.payload.timestamps.start,
-                            },
-                        },
-                        originalEventData: data,
+                        payload: StartOfEvent.payload,
                     }
+                    UserPL.payload.eventStatus = 'Stopped'
+                    UserPL.payload.timestamps.end = data.payload.end
+                    UserPL.payload.timestamps.duration =
+                        data.payload.end - UserPL.payload.timestamps.start
                     if (data.payload.score !== undefined) {
                         UserPL.payload.score = data.payload.score
                     }
+                    UserPL.originalEventData = data
                     self.send(UserPL)
-
                     delete WaitingForEnd[data.action.id]
                 }
             } else {
