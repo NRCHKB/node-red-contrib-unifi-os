@@ -187,8 +187,21 @@ module.exports = (RED: NodeAPI) => {
                                 start: data.payload.start,
                             },
                         },
-                        originalEventData: data,
                     }
+
+                    if (IdentifiedEvent.metadata.valueExpression) {
+                        const EXP = RED.util.prepareJSONataExpression(
+                            IdentifiedEvent.metadata.valueExpression,
+                            self
+                        )
+                        const Value = RED.util.evaluateJSONataExpression(
+                            EXP,
+                            data
+                        )
+                        UserPL.payload.value = Value
+                    }
+                    UserPL.payload.originalEventData = data
+
                     self.send(UserPL)
                     if (IdentifiedEvent.metadata.hasDuration) {
                         WaitingForEnd[data.action.id] = cloneObject(UserPL)

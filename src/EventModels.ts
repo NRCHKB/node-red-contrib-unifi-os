@@ -1,12 +1,55 @@
+export type Metadata =
+    | {
+          label: string
+          id: string
+          hasDuration: false
+          valueExpression: string
+      }
+    | {
+          label: string
+          id: string
+          hasDuration: true | false
+          valueExpression?: undefined
+      }
+
 export type UnifiEventModel = {
     shapeProfile: any
-    metadata: {
-        label: string
-        hasDuration: boolean
-        id: string
-    }
+    metadata: Metadata
 }
+
 const EventModels: UnifiEventModel[] = [
+    {
+        shapeProfile: {
+            action: {
+                modelKey: 'camera',
+            },
+            payload: {
+                isMotionDetected: true,
+            },
+        },
+        metadata: {
+            label: 'Motion Detection',
+            hasDuration: false,
+            id: 'MotionDetection',
+            valueExpression: 'payload.isMotionDetected',
+        },
+    },
+    {
+        shapeProfile: {
+            action: {
+                modelKey: 'camera',
+            },
+            payload: {
+                isMotionDetected: false,
+            },
+        },
+        metadata: {
+            label: 'Motion Detection',
+            hasDuration: false,
+            id: 'MotionDetection',
+            valueExpression: 'payload.isMotionDetected',
+        },
+    },
     {
         shapeProfile: {
             action: {
