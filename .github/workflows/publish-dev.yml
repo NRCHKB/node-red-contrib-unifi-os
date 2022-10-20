@@ -14,10 +14,10 @@ jobs:
         with:
           node-version: 12
       - run: |
-          npm i -g yarn
-          yarn install --frozen-lockfile
-          yarn build
-          yarn test
+          npm install -g npm
+          npm ci
+          npm run build
+          npm test
 
   publish-npm:
     needs: build
@@ -35,9 +35,9 @@ jobs:
       - name: Publish
         if: contains(steps.package-version.outputs.current-version, 'dev') == true
         run: |
-          npm i -g yarn
-          yarn install --frozen-lockfile
-          yarn build
+          npm install -g npm
+          npm ci
+          npm run build
           npm publish --tag dev
         env:
           NODE_AUTH_TOKEN: ${{secrets.NODE_TKN}}

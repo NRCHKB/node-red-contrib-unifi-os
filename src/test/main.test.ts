@@ -1,11 +1,12 @@
 import 'should'
-import { describe, beforeEach, afterEach, it } from 'mocha'
+
+import { afterEach, beforeEach, describe, it } from 'mocha'
 
 const helper = require('node-red-node-test-helper')
 
-const unifi = require('../../build/nodes/unifi')
-const unifiRequestNode = require('../../build/nodes/Request')
-const unifiAccessControllerNode = require('../../build/nodes/AccessController')
+const unifi = require('../nodes/unifi')
+const unifiRequestNode = require('../nodes/Request')
+const unifiAccessControllerNode = require('../nodes/AccessController')
 
 const nock = require('nock')
 nock('https://localhost')
