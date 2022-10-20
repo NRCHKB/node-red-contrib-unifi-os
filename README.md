@@ -10,7 +10,7 @@ Be warned, it is a lot of data. It will be up to the user to build filters and f
 ### * Current Status
 Updated July 15, 2021.
 
-Currently we have what appears to be a fully functioning setup. We are still looking for errors and bugs from more edge case testing, please report if you find something.
+Currently, we have what appears to be a fully functioning setup. We are still looking for errors and bugs from more edge case testing, please report if you find something.
 
 The HTTP endpoints [listed here](https://ubntwiki.com/products/software/UniFi-controller/api) should all be working properly. GET, POST, and PUT requests should all be functioning and able to pass commands from Node-RED into the UniFi API.
 
@@ -24,7 +24,7 @@ As you place your first UniFi node, you will need to create a new config node. T
 
 ### * How to Use HTTP Request Node
 
-HTTP request nodes can do all of the things [listed here](https://ubntwiki.com/products/software/UniFi-controller/api). 
+HTTP request nodes can do all the things [listed here](https://ubntwiki.com/products/software/UniFi-controller/api). 
 
 The configuration may be set either by typing into the node's setup fields or by sending payloads including `msg.payload.endpoint`, `msg.payload.method`, and `msg.payload.data`.
 
@@ -48,7 +48,7 @@ Here is an example payload which maybe sent if you would like to send data (POST
 }
 ```
 
-Please use [this excellent list](https://ubntwiki.com/products/software/UniFi-controller/api) to learn all of the fun things you might like to send to the HTTP node.
+Please use [this excellent list](https://ubntwiki.com/products/software/UniFi-controller/api) to learn all the fun things you might like to send to the HTTP node.
 
 ### * How to Use WebSocket Node
 
