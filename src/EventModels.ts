@@ -9,7 +9,7 @@ export type Metadata =
     | {
           label: string
           id: string
-          hasDuration: true | false
+          hasDuration: boolean
           valueExpression?: undefined
           supportsSnapshot: boolean
       }
