@@ -1,15 +1,16 @@
-import { NodeAPI } from 'node-red'
-import WebSocketNodeConfigType from '../types/WebSocketNodeConfigType'
-import WebSocketNodeType from '../types/WebSocketNodeType'
-import AccessControllerNodeType from '../types/AccessControllerNodeType'
-import WebSocket from 'ws'
-import { endpoints } from '../Endpoints'
 import { logger } from '@nrchkb/logger'
-import util from 'util'
-import WebSocketNodeInputPayloadType from '../types/WebSocketNodeInputPayloadType'
-import { ProtectApiUpdates } from '../lib/ProtectApiUpdates'
-import * as crypto from 'crypto'
 import { Loggers } from '@nrchkb/logger/src/types'
+import * as crypto from 'crypto'
+import { NodeAPI } from 'node-red'
+import util from 'util'
+import WebSocket from 'ws'
+
+import { endpoints } from '../Endpoints'
+import { ProtectApiUpdates } from '../lib/ProtectApiUpdates'
+import AccessControllerNodeType from '../types/AccessControllerNodeType'
+import WebSocketNodeConfigType from '../types/WebSocketNodeConfigType'
+import WebSocketNodeInputPayloadType from '../types/WebSocketNodeInputPayloadType'
+import WebSocketNodeType from '../types/WebSocketNodeType'
 
 /**
  * DEFAULT_RECONNECT_TIMEOUT is to wait until next try to connect web socket in case of error or server side closed socket (for example UniFi restart)
@@ -264,9 +265,10 @@ module.exports = (RED: NodeAPI) => {
         const log = logger('UniFi', 'WebSocket', self.name, self)
 
         self.endpoint = self.config.endpoint
+        await setupWebsocket(self)
 
         self.on('input', async (msg) => {
-            log.debug('Received input message: ' + util.inspect(msg?.payload))
+            log.debug('Received input message: ' + util.inspect(msg))
 
             const inputPayload =
                 validateInputPayload<WebSocketNodeInputPayloadType>(

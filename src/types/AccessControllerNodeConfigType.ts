@@ -1,4 +1,5 @@
 import { NodeDef } from 'node-red'
+
 import ControllerType from './ControllerType'
 
 type AccessControllerNodeConfigType = NodeDef & {

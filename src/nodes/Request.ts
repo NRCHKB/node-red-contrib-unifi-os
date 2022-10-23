@@ -1,10 +1,11 @@
-import { NodeAPI } from 'node-red'
-import RequestNodeConfigType from '../types/RequestNodeConfigType'
-import RequestNodeType from '../types/RequestNodeType'
-import AccessControllerNodeType from '../types/AccessControllerNodeType'
-import RequestNodeInputPayloadType from '../types/RequestNodeInputPayloadType'
 import { logger } from '@nrchkb/logger'
+import { NodeAPI } from 'node-red'
 import util from 'util'
+
+import AccessControllerNodeType from '../types/AccessControllerNodeType'
+import RequestNodeConfigType from '../types/RequestNodeConfigType'
+import RequestNodeInputPayloadType from '../types/RequestNodeInputPayloadType'
+import RequestNodeType from '../types/RequestNodeType'
 
 module.exports = (RED: NodeAPI) => {
     const validateInputPayload = (

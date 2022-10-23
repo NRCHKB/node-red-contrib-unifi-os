@@ -1,9 +1,10 @@
 import { Method, ResponseType } from 'axios'
 import { Node } from 'node-red'
 import AccessControllerNodeConfigType from './AccessControllerNodeConfigType'
-import { UnifiResponse } from './UnifiResponse'
 import ControllerType from './ControllerType'
 import { SharedProtectWebSocket } from '../SharedProtectWebSocket'
+import { UnifiResponse } from './UnifiResponse'
+
 
 type AccessControllerNodeType = Node & {
     config: AccessControllerNodeConfigType
