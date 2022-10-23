@@ -1,7 +1,7 @@
 import { NodeAPI } from 'node-red'
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
 import AccessControllerNodeConfigType from '../types/AccessControllerNodeConfigType'
-import Axios, { AxiosResponse } from 'axios'
+import Axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
 import * as https from 'https'
 import { HttpError } from '../types/HttpError'
 import { endpoints } from '../Endpoints'
@@ -195,7 +195,7 @@ module.exports = (RED: NodeAPI) => {
 
             return new Promise((resolve, reject) => {
                 const axiosRequest = async () => {
-                    Axios.request<UnifiResponse>({
+                    const Config: AxiosRequestConfig = {
                         url,
                         method,
                         data,
@@ -214,7 +214,9 @@ module.exports = (RED: NodeAPI) => {
                         },
                         withCredentials: true,
                         responseType,
-                    })
+                    }
+
+                    Axios.request<UnifiResponse>(Config)
                         .catch((error) => {
                             if (error instanceof HttpError) {
                                 if (error.status === 401) {

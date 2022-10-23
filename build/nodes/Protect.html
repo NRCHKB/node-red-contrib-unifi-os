@@ -20,6 +20,18 @@
                 value: [],
                 required: true,
             },
+            includeSnapshot: {
+                value: false,
+                required: false,
+            },
+            snapshotW: {
+                value: 256,
+                required: true,
+            },
+            snapshotH: {
+                value: 256,
+                required: true,
+            },
         },
         inputs: 1,
         outputs: 1,
@@ -100,6 +112,21 @@
             <option value="Vehicle">Vehicle Detected</option>
             <option value="Person">Person Detected</option>
         </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-includeSnapshot"><i class="fa fa-check"></i> Snapshot</label>
+        <input type="checkbox" id="node-input-includeSnapshot" />
+    </div>
+    <div class="form-row">
+        <label for="node-input-snapshotW"><i class="fa fa fa-arrows-h"></i> Width</label>
+        <input type="number" id="node-input-snapshotW" placeholder="256" />
+    </div>
+    <div class="form-row">
+        <label for="node-input-snapshotH"><i class="fa fa-arrows-v"></i> Height</label>
+        <input type="number" id="node-input-snapshotH" placeholder="256" />
+    </div>
+    <div class="form-tips" id="node-tip">
+        Caution: The larger the snapshot size, the more time needed to deliver the event to your flow. Not all event types support a snapshot, therefore will not be included.
     </div>
 </script>
 

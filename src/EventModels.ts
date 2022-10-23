@@ -4,12 +4,14 @@ export type Metadata =
           id: string
           hasDuration: false
           valueExpression: string
+          supportsSnapshot: boolean
       }
     | {
           label: string
           id: string
           hasDuration: true | false
           valueExpression?: undefined
+          supportsSnapshot: boolean
       }
 
 export type UnifiEventModel = {
@@ -32,6 +34,7 @@ const EventModels: UnifiEventModel[] = [
             hasDuration: false,
             id: 'MotionDetection',
             valueExpression: 'payload.isMotionDetected',
+            supportsSnapshot: false,
         },
     },
     {
@@ -48,6 +51,7 @@ const EventModels: UnifiEventModel[] = [
             hasDuration: false,
             id: 'MotionDetection',
             valueExpression: 'payload.isMotionDetected',
+            supportsSnapshot: false,
         },
     },
     {
@@ -63,6 +67,7 @@ const EventModels: UnifiEventModel[] = [
             label: 'Motion Event',
             hasDuration: true,
             id: 'MotionEvent',
+            supportsSnapshot: true,
         },
     },
     {
@@ -78,6 +83,7 @@ const EventModels: UnifiEventModel[] = [
             label: 'Door Bell Ring',
             hasDuration: false,
             id: 'DoorBell',
+            supportsSnapshot: true,
         },
     },
     {
@@ -94,6 +100,7 @@ const EventModels: UnifiEventModel[] = [
             label: 'Package Detected',
             hasDuration: false,
             id: 'Package',
+            supportsSnapshot: true,
         },
     },
     {
@@ -110,6 +117,7 @@ const EventModels: UnifiEventModel[] = [
             label: 'Vehicle Detected',
             hasDuration: true,
             id: 'Vehicle',
+            supportsSnapshot: true,
         },
     },
     {
@@ -126,6 +134,7 @@ const EventModels: UnifiEventModel[] = [
             label: 'Person Detected',
             hasDuration: true,
             id: 'Person',
+            supportsSnapshot: true,
         },
     },
 ]
