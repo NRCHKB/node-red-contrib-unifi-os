@@ -40,6 +40,11 @@
       "name": "Tadeusz Wyrzykowski",
       "email": "shaquu@icloud.com",
       "url": "https://github.com/Shaquu"
+    },
+    {
+      "name": "Marcus Davies",
+      "email": "marcus.davies83@icloud.com",
+      "url": "https://github.com/marcus-j-davies"
     }
   ],
   "license": "Apache-2.0",
@@ -57,7 +62,7 @@
   },
   "devDependencies": {
     "ws": "^8.9.0",
-    "@types/lodash": "4.14.186",
+    "@types/lodash": "^4.14.186",
     "@types/mocha": "^10.0.0",
     "@types/node": "^10.17.60",
     "@types/node-red": "^1.2.1",
