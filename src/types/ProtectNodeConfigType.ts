@@ -7,5 +7,6 @@ type ProtectNodeConfigType = NodeDef & {
     snapshotMode: string
     snapshotW: string
     snapshotH: string
+    delayedSnapshotTime: string
 }
 export default ProtectNodeConfigType

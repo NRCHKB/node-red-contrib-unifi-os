@@ -9,8 +9,6 @@ import AccessControllerNodeType from '../types/AccessControllerNodeType'
 import ProtectNodeConfigType from '../types/ProtectNodeConfigType'
 import ProtectNodeType from '../types/ProtectNodeType'
 
-const THUMBNAIL_WAIT_TIME = 2000
-
 module.exports = (RED: NodeAPI) => {
     const ReqRootPath = '/proxy/protect/api'
     const getReqPath = (Type: string, ID: string) => {
@@ -148,7 +146,7 @@ module.exports = (RED: NodeAPI) => {
                     .catch((e) => {
                         console.error(e)
                     })
-            }, THUMBNAIL_WAIT_TIME)
+            }, parseInt(self.config.delayedSnapshotTime))
         }
 
         // Register our interest in Protect Updates.
