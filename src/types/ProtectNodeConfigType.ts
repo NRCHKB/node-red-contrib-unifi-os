@@ -4,7 +4,7 @@ type ProtectNodeConfigType = NodeDef & {
     accessControllerNodeId: string
     cameraId: string
     eventIds: string[]
-    includeSnapshot: boolean
+    snapshotMode: string
     snapshotW: string
     snapshotH: string
 }

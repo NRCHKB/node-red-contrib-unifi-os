@@ -20,21 +20,25 @@
                 value: [],
                 required: true,
             },
-            includeSnapshot: {
-                value: false,
-                required: false,
+            snapshotMode: {
+                value: 'None',
+                required: true,
             },
             snapshotW: {
-                value: 256,
+                value: 360,
                 required: true,
             },
             snapshotH: {
-                value: 256,
+                value: 360,
                 required: true,
             },
         },
         inputs: 1,
-        outputs: 1,
+        outputs: 2,
+        outputLabels: function (index) {
+            const Lables = ["Event Data","Delayed/Awaited Snapshots"]
+			return Lables[index]
+		},
         icon: 'protect.png',
         color: '#159eda',
         label: function () {
@@ -114,16 +118,21 @@
         </select>
     </div>
     <div class="form-row">
-        <label for="node-input-includeSnapshot"><i class="fa fa-check"></i> Snapshot</label>
-        <input type="checkbox" id="node-input-includeSnapshot" />
+        <label for="node-input-snapshotMode"><i class="fa fa-check"></i> Snapshots</label>
+        <select id="node-input-snapshotMode">
+            <option value="None" selected>None</option>
+            <option value="Initial">Initial Only (if supported)</option>
+            <option value="InitialDelayed">Initial And Delayed (if supported)</option>
+            <option value="InitialRetain">Retain Initial (if supported)</option>
+        </select>
     </div>
     <div class="form-row">
         <label for="node-input-snapshotW"><i class="fa fa fa-arrows-h"></i> Width</label>
-        <input type="number" id="node-input-snapshotW" placeholder="256" />
+        <input type="number" id="node-input-snapshotW" placeholder="360" />
     </div>
     <div class="form-row">
         <label for="node-input-snapshotH"><i class="fa fa-arrows-v"></i> Height</label>
-        <input type="number" id="node-input-snapshotH" placeholder="256" />
+        <input type="number" id="node-input-snapshotH" placeholder="360" />
     </div>
     <div class="form-tips" id="node-tip">
         Caution: The larger the snapshot size, the more time needed to deliver the event to your flow. Not all event types support a snapshot, therefore will not be included.

@@ -1,17 +1,25 @@
+export enum ThumbnailSupport {
+    START_END = 0,
+    START_WITH_DELAYED_END,
+    SINGLE_DELAYED,
+    SINGLE,
+    NONE,
+}
+
 export type Metadata =
     | {
           label: string
           id: string
           hasDuration: false
           valueExpression: string
-          supportsSnapshot: boolean
+          thumbnailSupport: ThumbnailSupport
       }
     | {
           label: string
           id: string
           hasDuration: boolean
           valueExpression?: undefined
-          supportsSnapshot: boolean
+          thumbnailSupport: ThumbnailSupport
       }
 
 export type UnifiEventModel = {
@@ -34,7 +42,7 @@ const EventModels: UnifiEventModel[] = [
             hasDuration: false,
             id: 'MotionDetection',
             valueExpression: 'payload.isMotionDetected',
-            supportsSnapshot: false,
+            thumbnailSupport: ThumbnailSupport.NONE,
         },
     },
     {
@@ -51,7 +59,7 @@ const EventModels: UnifiEventModel[] = [
             hasDuration: false,
             id: 'MotionDetection',
             valueExpression: 'payload.isMotionDetected',
-            supportsSnapshot: false,
+            thumbnailSupport: ThumbnailSupport.NONE,
         },
     },
     {
@@ -67,7 +75,7 @@ const EventModels: UnifiEventModel[] = [
             label: 'Motion Event',
             hasDuration: true,
             id: 'MotionEvent',
-            supportsSnapshot: true,
+            thumbnailSupport: ThumbnailSupport.START_WITH_DELAYED_END,
         },
     },
     {
@@ -83,7 +91,7 @@ const EventModels: UnifiEventModel[] = [
             label: 'Door Bell Ring',
             hasDuration: false,
             id: 'DoorBell',
-            supportsSnapshot: true,
+            thumbnailSupport: ThumbnailSupport.SINGLE_DELAYED,
         },
     },
     {
@@ -100,7 +108,7 @@ const EventModels: UnifiEventModel[] = [
             label: 'Package Detected',
             hasDuration: false,
             id: 'Package',
-            supportsSnapshot: true,
+            thumbnailSupport: ThumbnailSupport.SINGLE_DELAYED,
         },
     },
     {
@@ -117,7 +125,7 @@ const EventModels: UnifiEventModel[] = [
             label: 'Vehicle Detected',
             hasDuration: true,
             id: 'Vehicle',
-            supportsSnapshot: true,
+            thumbnailSupport: ThumbnailSupport.START_WITH_DELAYED_END,
         },
     },
     {
@@ -134,7 +142,7 @@ const EventModels: UnifiEventModel[] = [
             label: 'Person Detected',
             hasDuration: true,
             id: 'Person',
-            supportsSnapshot: true,
+            thumbnailSupport: ThumbnailSupport.START_WITH_DELAYED_END,
         },
     },
 ]

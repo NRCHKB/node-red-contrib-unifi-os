@@ -1,12 +1,15 @@
-import { NodeAPI } from 'node-red'
-import ProtectNodeType from '../types/ProtectNodeType'
-import ProtectNodeConfigType from '../types/ProtectNodeConfigType'
-import AccessControllerNodeType from '../types/AccessControllerNodeType'
-import { Interest } from '../SharedProtectWebSocket'
 import { logger } from '@nrchkb/logger'
-import util from 'util'
-import EventModels, { UnifiEventModel } from '../EventModels'
 import { isMatch } from 'lodash'
+import { NodeAPI } from 'node-red'
+import util from 'util'
+
+import EventModels, { ThumbnailSupport, UnifiEventModel } from '../EventModels'
+import { Interest } from '../SharedProtectWebSocket'
+import AccessControllerNodeType from '../types/AccessControllerNodeType'
+import ProtectNodeConfigType from '../types/ProtectNodeConfigType'
+import ProtectNodeType from '../types/ProtectNodeType'
+
+const THUMBNAIL_WAIT_TIME = 2000
 
 module.exports = (RED: NodeAPI) => {
     const ReqRootPath = '/proxy/protect/api'
@@ -129,105 +132,157 @@ module.exports = (RED: NodeAPI) => {
             })
         }
 
+        // Triger SS timer
+        const DelaySnapshot = (EID: string) => {
+            setTimeout(() => {
+                getSnapshot(EID)
+                    .then((D) => {
+                        const UserPL = {
+                            payload: {
+                                associatedEventId: EID,
+                                snapshotBuffer: D,
+                            },
+                        }
+                        self.send([undefined, UserPL])
+                    })
+                    .catch((e) => {
+                        console.error(e)
+                    })
+            }, THUMBNAIL_WAIT_TIME)
+        }
+
         // Register our interest in Protect Updates.
         const handleUpdate = async (data: any) => {
-            // check if this is the end of an event
-            if (
-                data.action.action === 'update' &&
-                data.payload.end !== undefined
-            ) {
-                // Get ID
-                const EID = data.action.id.split('-')[0]
+            // Get ID
+            const EID = data.action.id.split('-')[0]
 
-                // obtain start
+            // Is End event?
+            const isEnd =
+                data.payload.end !== undefined &&
+                data.action.action === 'update'
+
+            if (isEnd) {
+                // End of Event
+                const SnapRequiremnets = ['InitialDelayed']
                 const StartOfEvent = WaitingForEnd[EID]
+                if (StartOfEvent !== undefined) {
+                    const EndDate = data.payload.end
+                    const Duration =
+                        EndDate - StartOfEvent.payload.timestamps.startDate
 
-                if (StartOfEvent) {
-                    const End = data.payload.end
                     const UserPL: any = {
                         payload: StartOfEvent.payload,
                     }
+
                     UserPL.payload.eventStatus = 'Stopped'
-                    UserPL.payload.timestamps.endDate = End
-                    UserPL.payload.timestamps.duration =
-                        End - UserPL.payload.timestamps.startDate
+                    UserPL.payload.timestamps.endDate = EndDate
+                    UserPL.payload.timestamps.duration = Duration
 
-                    if (
-                        self.config.includeSnapshot &&
-                        UserPL.payload.snapshotBuffer !== undefined
-                    ) {
-                        try {
-                            /* odd issue - returns 404 but its fine in the browser */
-                            /*
-                            UserPL.payload.snapshotBuffer = await getSnapshot(
-                                EID
-                            )
-                            */
-                            /*
-                            23 Oct 10:15:22 - [error] [unifi-protect:My UDR:e65dcb18c5cbabc1] Bad response from: https://10.0.0.1/proxy/protect/api/events/6355061a03e7ab03e7002a99/thumbnail?h=128&w=128
-                            23 Oct 10:15:22 UniFi-Error [My UDR:e65dcb18c5cbabc1:e65dcb18c5cbabc1] Bad response from: https://10.0.0.1/proxy/protect/api/events/6355061a03e7ab03e7002a99/thumbnail?h=128&w=128 +0ms
-                            23 Oct 10:15:22 - [error] [unifi-protect:My UDR:e65dcb18c5cbabc1] Endpoint not found: Error: Request failed with status code 404
-                            23 Oct 10:15:22 UniFi-Error [My UDR:e65dcb18c5cbabc1:e65dcb18c5cbabc1] Endpoint not found: Error: Request failed with status code 404 +32ms
-                            */
-                        } catch (e) {
-                            console.error(e)
-                        }
+                    if (self.config.snapshotMode !== 'InitialRetain') {
+                        delete UserPL.payload.snapshotBuffer
+                    }
 
-                        if (data.payload.score !== undefined) {
-                            UserPL.payload.score = data.payload.score
+                    if (self.config.snapshotMode === 'None') {
+                        UserPL.payload.snapshotAvailability = 'DISABLED'
+                    }
+
+                    if (SnapRequiremnets.includes(self.config.snapshotMode)) {
+                        const TNS: ThumbnailSupport =
+                            StartOfEvent.internal.identifiedEvent.metadata
+                                .thumbnailSupport
+
+                        switch (TNS) {
+                            case ThumbnailSupport.NONE:
+                                UserPL.payload.snapshotAvailability =
+                                    'NOT_SUPPORTED'
+                                break
+
+                            case ThumbnailSupport.START_END:
+                                try {
+                                    UserPL.payload.snapshotBuffer =
+                                        await getSnapshot(EID)
+                                    UserPL.payload.snapshotAvailability =
+                                        'INLINE'
+                                } catch (e) {
+                                    UserPL.payload.snapshotAvailability =
+                                        'ERROR'
+                                    console.error(e)
+                                }
+                                break
+                            case ThumbnailSupport.START_WITH_DELAYED_END:
+                                DelaySnapshot(EID)
+                                UserPL.payload.snapshotAvailability = 'DELAYED'
+                                break
                         }
+                    }
+
+                    if (data.payload.score !== undefined) {
+                        UserPL.payload.score = data.payload.score
                     }
 
                     UserPL.payload.originalEventData = data
-                    self.send(UserPL)
+                    self.send([UserPL, undefined])
                     delete WaitingForEnd[EID]
                 }
             } else {
+                // New Event
                 let IdentifiedEvent: UnifiEventModel | undefined
+                let ShouldSkip = false
+                const Now = new Date().getTime()
+                const SnapRequiremnets = [
+                    'InitialDelayed',
+                    'Initial',
+                    'InitialRetain',
+                ]
 
                 EventModels.forEach((EM) => {
+                    if (ShouldSkip) {
+                        return
+                    }
                     if (isMatch(data, EM.shapeProfile)) {
                         IdentifiedEvent = EM
+                        ShouldSkip = true
                     }
                 })
-                if (
+
+                const Identified =
                     IdentifiedEvent &&
                     self.config.eventIds.includes(IdentifiedEvent.metadata.id)
-                ) {
+
+                if (Identified) {
                     const Camera =
                         self.accessControllerNode.bootstrapObject.cameras.filter(
                             (C: any) => C.id === self.config.cameraId
                         )[0]
-
-                    // Get ID
-                    const EID = data.action.id.split('-')[0]
+                    const HasDuration = IdentifiedEvent!.metadata.hasDuration
+                    const HasEvaluationValue =
+                        IdentifiedEvent!.metadata.valueExpression
 
                     const UserPL: any = {
                         payload: {
                             cameraName: Camera.name,
                             cameraType: Camera.type,
                             cameraId: Camera.id,
-                            event: IdentifiedEvent?.metadata.label,
+                            event: IdentifiedEvent!.metadata.label,
                             eventId: EID,
-                            hasDuration: IdentifiedEvent?.metadata.hasDuration,
+                            hasDuration: HasDuration,
                         },
                     }
 
-                    if (IdentifiedEvent?.metadata.hasDuration) {
+                    if (HasDuration) {
                         UserPL.payload.eventStatus = 'Started'
                         UserPL.payload.timestamps = {
                             startDate: data.payload.start,
                         }
                     } else {
                         UserPL.payload.timestamps = {
-                            eventDate:
-                                data.payload.start || new Date().getTime(),
+                            eventDate: data.payload.start || Now,
                         }
                     }
 
-                    if (IdentifiedEvent.metadata.valueExpression) {
+                    if (HasEvaluationValue) {
                         const EXP = RED.util.prepareJSONataExpression(
-                            IdentifiedEvent.metadata.valueExpression,
+                            IdentifiedEvent!.metadata.valueExpression,
                             self
                         )
                         const Value = RED.util.evaluateJSONataExpression(
@@ -237,25 +292,51 @@ module.exports = (RED: NodeAPI) => {
                         UserPL.payload.value = Value
                     }
 
-                    if (
-                        self.config.includeSnapshot &&
-                        IdentifiedEvent.metadata.supportsSnapshot
-                    ) {
-                        try {
-                            UserPL.payload.snapshotBuffer = await getSnapshot(
-                                EID
-                            )
-                        } catch (e) {
-                            console.error(e)
+                    if (self.config.snapshotMode === 'None') {
+                        UserPL.payload.snapshotAvailability = 'DISABLED'
+                    }
+
+                    if (SnapRequiremnets.includes(self.config.snapshotMode)) {
+                        const TNS: ThumbnailSupport =
+                            IdentifiedEvent!.metadata.thumbnailSupport
+
+                        switch (TNS) {
+                            case ThumbnailSupport.NONE:
+                                UserPL.payload.snapshotAvailability =
+                                    'NOT_SUPPORTED'
+                                break
+
+                            case ThumbnailSupport.SINGLE_DELAYED:
+                                DelaySnapshot(EID)
+                                UserPL.payload.snapshotAvailability = 'DELAYED'
+                                break
+
+                            case ThumbnailSupport.START_END:
+                            case ThumbnailSupport.START_WITH_DELAYED_END:
+                            case ThumbnailSupport.SINGLE:
+                                try {
+                                    UserPL.payload.snapshotBuffer =
+                                        await getSnapshot(EID)
+                                    UserPL.payload.snapshotAvailability =
+                                        'INLINE'
+                                } catch (e) {
+                                    UserPL.payload.snapshotAvailability =
+                                        'ERROR'
+                                    console.error(e)
+                                }
+                                break
                         }
                     }
 
-                    if (IdentifiedEvent.metadata.hasDuration) {
+                    if (HasDuration) {
                         WaitingForEnd[EID] = RED.util.cloneMessage(UserPL)
+                        WaitingForEnd[EID].internal = {
+                            identifiedEvent: IdentifiedEvent,
+                        }
                     }
 
                     UserPL.payload.originalEventData = data
-                    self.send(UserPL)
+                    self.send([UserPL, undefined])
                 }
             }
         }
