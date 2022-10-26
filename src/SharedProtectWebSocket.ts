@@ -1,11 +1,12 @@
-import WebSocket from 'ws'
-import AccessControllerNodeConfigType from './types/AccessControllerNodeConfigType'
-import AccessControllerNodeType from './types/AccessControllerNodeType'
-import { endpoints } from './Endpoints'
-import { ProtectApiUpdates } from './lib/ProtectApiUpdates'
 import { logger } from '@nrchkb/logger'
 import { Loggers } from '@nrchkb/logger/src/types'
 import * as crypto from 'crypto'
+import WebSocket from 'ws'
+
+import { endpoints } from './Endpoints'
+import { ProtectApiUpdates } from './lib/ProtectApiUpdates'
+import AccessControllerNodeConfigType from './types/AccessControllerNodeConfigType'
+import AccessControllerNodeType from './types/AccessControllerNodeType'
 
 /**
  * DEFAULT_RECONNECT_TIMEOUT is to wait until next try to connect web socket in case of error or server side closed socket (for example UniFi restart)
@@ -20,10 +21,10 @@ export interface Interest {
 export class SharedProtectWebSocket {
     private bootstrap: any
     private callbacks: { [nodeId: string]: Interest }
-    private WS?: WebSocket
-    private Config: AccessControllerNodeConfigType
-    private AccessController: AccessControllerNodeType
-    private WSLogger: Loggers
+    private ws?: WebSocket
+    private config: AccessControllerNodeConfigType
+    private accessController: AccessControllerNodeType
+    private wsLogger: Loggers
 
     constructor(
         AccessController: AccessControllerNodeType,
@@ -32,11 +33,11 @@ export class SharedProtectWebSocket {
     ) {
         this.bootstrap = initialBootstrap
         this.callbacks = {}
-        this.Config = config
-        this.AccessController = AccessController
+        this.config = config
+        this.accessController = AccessController
 
         const id = crypto.randomBytes(16).toString('hex')
-        this.WSLogger = logger(
+        this.wsLogger = logger(
             'UniFi',
             `WebSocket:${id}`,
             'SharedProtectWebSocket',
@@ -54,27 +55,27 @@ export class SharedProtectWebSocket {
     }
 
     private Disconnect(): void {
-        this.WS?.removeAllListeners()
-        this.WS?.close(1000)
-        this.WS?.terminate()
-        this.WS = undefined
+        this.ws?.removeAllListeners()
+        this.ws?.close(1000)
+        this.ws?.terminate()
+        this.ws = undefined
     }
 
     private Connect(): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            const url = `${endpoints.protocol.webSocket}${this.Config.controllerIp}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
+            const url = `${endpoints.protocol.webSocket}${this.config.controllerIp}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
 
-            this.WS = new WebSocket(url, {
+            this.ws = new WebSocket(url, {
                 rejectUnauthorized: false,
                 headers: {
-                    Cookie: await this.AccessController.getAuthCookie().then(
-                        (value) => value
-                    ),
+                    Cookie: await this.accessController
+                        .getAuthCookie()
+                        .then((value) => value),
                 },
             })
 
-            this.WS.on('error', (error) => {
-                this.WSLogger.error(`${error}`)
+            this.ws.on('error', (error) => {
+                this.wsLogger.error(`${error}`)
                 reject(error)
                 setTimeout(() => {
                     this.Connect().catch((Error) => {
@@ -83,16 +84,16 @@ export class SharedProtectWebSocket {
                 }, DEFAULT_RECONNECT_TIMEOUT)
             })
 
-            this.WS.on('open', () => {
-                this.WSLogger.debug(`Connection to ${url} open`)
-                this.WS?.on('message', (data) => {
+            this.ws.on('open', () => {
+                this.wsLogger.debug(`Connection to ${url} open`)
+                this.ws?.on('message', (data) => {
                     let objectToSend: any
 
                     try {
                         objectToSend = JSON.parse(data.toString())
                     } catch (_) {
                         objectToSend = ProtectApiUpdates.decodeUpdatePacket(
-                            this.WSLogger,
+                            this.wsLogger,
                             data as Buffer
                         )
                     }
@@ -108,7 +109,7 @@ export class SharedProtectWebSocket {
                     })
                 })
 
-                this.WS?.on('close', () => {
+                this.ws?.on('close', () => {
                     setTimeout(() => {
                         this.Connect().catch((Error) => {
                             console.error(Error)
@@ -130,7 +131,7 @@ export class SharedProtectWebSocket {
 
     updateLastUpdateId(newBootstrap: any): void {
         if (newBootstrap.lastUpdateId !== this.bootstrap.lastUpdateId) {
-            this.WSLogger.debug(
+            this.wsLogger.debug(
                 'New lastUpdateId received, re-configuring Shared socket'
             )
             this.bootstrap = newBootstrap

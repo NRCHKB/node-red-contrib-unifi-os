@@ -10,9 +10,9 @@ import ProtectNodeConfigType from '../types/ProtectNodeConfigType'
 import ProtectNodeType from '../types/ProtectNodeType'
 
 module.exports = (RED: NodeAPI) => {
-    const ReqRootPath = '/proxy/protect/api'
+    const reqRootPath = '/proxy/protect/api'
     const getReqPath = (Type: string, ID: string) => {
-        return `${ReqRootPath}/${Type}/${ID}`
+        return `${reqRootPath}/${Type}/${ID}`
     }
 
     const init = function (

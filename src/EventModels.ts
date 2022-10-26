@@ -18,6 +18,7 @@ export type Metadata =
           label: string
           id: string
           hasDuration: boolean
+          valueExpression?: undefined
           thumbnailSupport: ThumbnailSupport
       }
 
