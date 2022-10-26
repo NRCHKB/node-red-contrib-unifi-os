@@ -1,9 +1,9 @@
 export enum ThumbnailSupport {
     START_END = 0,
-    START_WITH_DELAYED_END,
-    SINGLE_DELAYED,
-    SINGLE,
-    NONE,
+    START_WITH_DELAYED_END = 1,
+    SINGLE_DELAYED = 2,
+    SINGLE = 3,
+    NONE = 4,
 }
 
 export type Metadata =
@@ -18,7 +18,6 @@ export type Metadata =
           label: string
           id: string
           hasDuration: boolean
-          valueExpression?: undefined
           thumbnailSupport: ThumbnailSupport
       }
 
