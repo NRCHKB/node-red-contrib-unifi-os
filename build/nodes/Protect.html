@@ -1,5 +1,5 @@
 <script type="text/javascript">
-    let selectedCamera;
+    let selectedCamera
     RED.nodes.registerType('unifi-protect', {
         category: 'UniFi',
         defaults: {
@@ -40,9 +40,17 @@
         inputs: 1,
         outputs: 2,
         outputLabels: function (index) {
-            const Lables = ["Event Data","Delayed Snapshots"]
-			return Lables[index]
-		},
+            switch (index) {
+                case 0:
+                    return 'Event Data'
+
+                case 1:
+                    return 'Delayed Snapshots'
+
+                default:
+                    return ''
+            }
+        },
         icon: 'protect.png',
         color: '#159eda',
         label: function () {
@@ -52,9 +60,9 @@
             return this.name ? 'node_label_italic' : ''
         },
         oneditprepare: function () {
-            selectedCamera = undefined;
-            if(this.cameraId){
-                selectedCamera = this.cameraId;
+            selectedCamera = undefined
+            if (this.cameraId) {
+                selectedCamera = this.cameraId
             }
 
             if (this.accessControllerNodeId) {
@@ -80,10 +88,11 @@
                 data.cameras.forEach((Camera) => {
                     $('#node-input-cameraId').append(
                         `<option value="${Camera.id}">${Camera.name} (${Camera.type})</option>`
-                    )})
-                    if(selectedCamera){
-                        $('#node-input-cameraId').val(selectedCamera)
-                    }
+                    )
+                })
+                if (selectedCamera) {
+                    $('#node-input-cameraId').val(selectedCamera)
+                }
             }).fail(function () {
                 alert(
                     'This Unifi OS Console, does not appear to have a Protect Instance configured.'
