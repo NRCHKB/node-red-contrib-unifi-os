@@ -249,7 +249,7 @@ module.exports = (RED: NodeAPI) => {
 
                 if (Identified) {
                     const Camera =
-                        self.accessControllerNode.bootstrapObject.cameras.filter(
+                        self.accessControllerNode.bootstrapObject!.cameras.filter(
                             (C: any) => C.id === self.config.cameraId
                         )[0]
                     const HasDuration = IdentifiedEvent!.metadata.hasDuration

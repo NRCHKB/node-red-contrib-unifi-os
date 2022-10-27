@@ -19,7 +19,7 @@ export interface Interest {
 }
 
 export class SharedProtectWebSocket {
-    private bootstrap: any
+    private bootstrap: Record<string, any>
     private callbacks: { [nodeId: string]: Interest }
     private ws?: WebSocket
     private config: AccessControllerNodeConfigType
@@ -29,7 +29,7 @@ export class SharedProtectWebSocket {
     constructor(
         AccessController: AccessControllerNodeType,
         config: AccessControllerNodeConfigType,
-        initialBootstrap: any
+        initialBootstrap: Record<string, any>
     ) {
         this.bootstrap = initialBootstrap
         this.callbacks = {}
@@ -129,7 +129,7 @@ export class SharedProtectWebSocket {
         this.callbacks[nodeId] = interest
     }
 
-    updateLastUpdateId(newBootstrap: any): void {
+    updateLastUpdateId(newBootstrap: Record<string, any>): void {
         if (newBootstrap.lastUpdateId !== this.bootstrap.lastUpdateId) {
             this.wsLogger.debug(
                 'New lastUpdateId received, re-configuring Shared socket'

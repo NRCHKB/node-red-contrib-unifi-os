@@ -23,7 +23,7 @@ export type Metadata =
       }
 
 export type UnifiEventModel = {
-    shapeProfile: any
+    shapeProfile: Record<string, any>
     metadata: Metadata
 }
 

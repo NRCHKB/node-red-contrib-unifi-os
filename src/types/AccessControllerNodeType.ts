@@ -1,8 +1,9 @@
 import { Method, ResponseType } from 'axios'
 import { Node } from 'node-red'
+
+import { SharedProtectWebSocket } from '../SharedProtectWebSocket'
 import AccessControllerNodeConfigType from './AccessControllerNodeConfigType'
 import ControllerType from './ControllerType'
-import { SharedProtectWebSocket } from '../SharedProtectWebSocket'
 import { UnifiResponse } from './UnifiResponse'
 
 
@@ -30,7 +31,7 @@ type AccessControllerNodeType = Node & {
     controllerType: ControllerType
 
     // The current bootstrap (more importantly the lastUpdateId and Cam ID's)
-    bootstrapObject?: any
+    bootstrapObject?: Record<string, any>
 
     // The Shared Websocket used by all Protect Nodes
     protectSharedWS?: SharedProtectWebSocket
