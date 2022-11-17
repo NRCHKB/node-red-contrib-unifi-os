@@ -7,6 +7,8 @@ type AccessControllerNodeConfigType = NodeDef & {
     controllerIp: string
     controllerPort?: string
     controllerType?: ControllerType
+    protectSocketReconnectTimeout?: number
+    protectSocketHeartbeatInterval?: number
 }
 
 export default AccessControllerNodeConfigType

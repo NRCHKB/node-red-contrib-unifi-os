@@ -1,5 +1,6 @@
 <script type="text/javascript">
     let selectedCamera
+    let selectedController
     RED.nodes.registerType('unifi-protect', {
         category: 'UniFi',
         defaults: {
@@ -8,7 +9,7 @@
                 required: false,
             },
             accessControllerNodeId: {
-                value: '',
+                value: undefined,
                 type: 'unifi-access-controller',
                 required: true,
             },
@@ -33,6 +34,7 @@
                 required: true,
             },
             delayedSnapshotTime: {
+                validate: RED.validators.number(),
                 value: 2000,
                 required: true,
             },
@@ -59,49 +61,68 @@
         labelStyle: function () {
             return this.name ? 'node_label_italic' : ''
         },
+        oneditsave: function () {
+            const Element = $('#el-node-input-delayedSnapshotTime')
+            this.delayedSnapshotTime = parseInt(Element.val())
+        },
         oneditprepare: function () {
+            selectedController = undefined
             selectedCamera = undefined
+            $('#el-node-input-delayedSnapshotTime').val(
+                this.delayedSnapshotTime
+            )
+
             if (this.cameraId) {
                 selectedCamera = this.cameraId
             }
 
             if (this.accessControllerNodeId) {
                 listCameras(this.accessControllerNodeId)
-                $('#node-input-cameraId').val(this.accessControllerNodeId)
             }
 
-            $('#node-input-accessControllerNodeId').change(() => {
-                const ControllerID = $(
-                    '#node-input-accessControllerNodeId'
-                ).val()
-                listCameras(ControllerID)
-            })
+            $('#node-input-accessControllerNodeId').off('change')
+            $('#node-input-accessControllerNodeId').change(controllerSelected)
         },
     })
+
+    function controllerSelected() {
+        const ControllerID = $('#node-input-accessControllerNodeId').val()
+
+       
+
+        if (selectedController === ControllerID) {
+            return
+        }
+
+        selectedController = ControllerID
+
+        if (ControllerID !== undefined && ControllerID !== '_ADD_') {
+            listCameras(ControllerID)
+        }
+    }
 
     function listCameras(ControllerID) {
         $('#node-input-cameraId').empty()
         $('#node-input-cameraId').append(`<option value="">Choose...</option>`)
 
-        if (ControllerID && ControllerID !== '_ADD_') {
-            $.getJSON(`nrchkb/unifi/bootsrap/${ControllerID}`, (data) => {
-                data.cameras.forEach((Camera) => {
-                    $('#node-input-cameraId').append(
-                        `<option value="${Camera.id}">${Camera.name} (${Camera.type})</option>`
-                    )
-                })
-                if (selectedCamera) {
-                    $('#node-input-cameraId').val(selectedCamera)
-                }
-            }).fail(function () {
-                alert(
-                    'This Unifi OS Console, does not appear to have a Protect Instance configured.'
+        $.getJSON(`nrchkb/unifi/bootsrap/${ControllerID}`, (data) => {
+            data.cameras.forEach((Camera) => {
+                $('#node-input-cameraId').append(
+                    `<option value="${Camera.id}">${Camera.name} (${Camera.type})</option>`
                 )
             })
-        }
+            if (selectedCamera) {
+                $('#node-input-cameraId').val(selectedCamera)
+            }
+        }).fail(function () {
+            alert(
+                'This Unifi OS Console, does not appear to have a Protect Instance configured.'
+            )
+        })
     }
 </script>
 
+<!-- prettier-ignore -->
 <script data-template-name="unifi-protect" type="text/html">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
@@ -131,7 +152,7 @@
         </select>
     </div>
     <div class="form-row">
-        <label for="node-input-snapshotMode"><i class="fa fa-check"></i> Snapshots</label>
+        <label for="node-input-snapshotMode"><i class="fa fa-image"></i> Snapshots</label>
         <select id="node-input-snapshotMode">
             <option value="None" selected>None</option>
             <option value="Initial">Initial Only (if supported)</option>
@@ -148,15 +169,16 @@
         <input type="number" id="node-input-snapshotH" placeholder="360" />
     </div>
     <div class="form-row">
-        <label for="node-input-delayedSnapshotTime"><i class="fa fa-clock-o"></i> Delay Time</label>
-        <input type="number" id="node-input-delayedSnapshotTime" placeholder="2000" />
+        <label for="el-node-input-delayedSnapshotTime"><i class="fa fa-clock-o"></i> Delay Time</label>
+        <input type="number" id="el-node-input-delayedSnapshotTime" placeholder="2000" />
     </div>
     <div class="form-tips" id="node-tip">
         Caution: The larger the snapshot size, the more time needed to deliver the event to your flow. Not all event types support a snapshot, therefore will not be included. 
-        The <code>Delay Time</code> value represents how long to give the controller to generate any snpshots that are not available at the time of the event.
+        The <code>Delay Time</code> value represents how long to give the controller to generate any snapshot that are not immediately available at the time of the event.
     </div>
 </script>
 
+<!-- prettier-ignore -->
 <script data-help-name="unifi-protect" type="text/html">
     <p>A Unifi Protect Camera.</p>
 </script>

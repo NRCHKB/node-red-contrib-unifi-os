@@ -146,7 +146,7 @@ module.exports = (RED: NodeAPI) => {
                     .catch((e) => {
                         console.error(e)
                     })
-            }, parseInt(self.config.delayedSnapshotTime))
+            }, self.config.delayedSnapshotTime)
         }
 
         // Register our interest in Protect Updates.
