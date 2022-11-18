@@ -3,11 +3,18 @@ import { isMatch } from 'lodash'
 import { NodeAPI } from 'node-red'
 import util from 'util'
 
-import EventModels, { ThumbnailSupport, UnifiEventModel } from '../EventModels'
+import EventModels, { ThumbnailSupport } from '../EventModels'
 import { Interest } from '../SharedProtectWebSocket'
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
 import ProtectNodeConfigType from '../types/ProtectNodeConfigType'
 import ProtectNodeType from '../types/ProtectNodeType'
+
+const initialSnapshotModeRequirements = [
+    'InitialDelayed',
+    'Initial',
+    'InitialRetain',
+]
+const endSnapshotModeRequirements = ['InitialDelayed']
 
 module.exports = (RED: NodeAPI) => {
     const reqRootPath = '/proxy/protect/api'
@@ -64,8 +71,13 @@ module.exports = (RED: NodeAPI) => {
         const self = this
         const log = logger('UniFi', 'Protect', self.name, self)
 
+        // Used to store the Start of an event with a duration.
+        const startEvents: any = {}
+
         self.on('close', (done: () => void) => {
-            self.accessControllerNode.protectSharedWS?.degisterInterest(self.id)
+            self.accessControllerNode.protectSharedWS?.deregisterInterest(
+                self.id
+            )
             done()
         })
 
@@ -111,9 +123,6 @@ module.exports = (RED: NodeAPI) => {
             shape: 'dot',
             text: 'Initialized',
         })
-
-        // Used to store the Start of an event with a duration.
-        const WaitingForEnd: any = {}
 
         // Get Snapshot
         const getSnapshot = (eventId: string): Promise<any | undefined> => {
@@ -161,8 +170,8 @@ module.exports = (RED: NodeAPI) => {
 
             if (isEnd) {
                 // End of Event
-                const SnapRequiremnets = ['InitialDelayed']
-                const StartOfEvent = WaitingForEnd[EID]
+
+                const StartOfEvent = startEvents[EID]
                 if (StartOfEvent !== undefined) {
                     const EndDate = data.payload.end
                     const Duration =
@@ -184,12 +193,16 @@ module.exports = (RED: NodeAPI) => {
                         UserPL.payload.snapshotAvailability = 'DISABLED'
                     }
 
-                    if (SnapRequiremnets.includes(self.config.snapshotMode)) {
-                        const TNS: ThumbnailSupport =
+                    if (
+                        endSnapshotModeRequirements.includes(
+                            self.config.snapshotMode
+                        )
+                    ) {
+                        const EventThumbnailSupport: ThumbnailSupport =
                             StartOfEvent.internal.identifiedEvent.metadata
                                 .thumbnailSupport
 
-                        switch (TNS) {
+                        switch (EventThumbnailSupport) {
                             case ThumbnailSupport.NONE:
                                 UserPL.payload.snapshotAvailability =
                                     'NOT_SUPPORTED'
@@ -220,122 +233,127 @@ module.exports = (RED: NodeAPI) => {
 
                     UserPL.payload.originalEventData = data
                     self.send([UserPL, undefined])
-                    delete WaitingForEnd[EID]
+                    delete startEvents[EID]
                 }
             } else {
                 // New Event
-                let IdentifiedEvent: UnifiEventModel | undefined
-                let ShouldSkip = false
                 const Now = new Date().getTime()
-                const SnapRequiremnets = [
-                    'InitialDelayed',
-                    'Initial',
-                    'InitialRetain',
-                ]
 
-                EventModels.forEach((EM) => {
-                    if (ShouldSkip) {
-                        return
-                    }
-                    if (isMatch(data, EM.shapeProfile)) {
-                        IdentifiedEvent = EM
-                        ShouldSkip = true
-                    }
-                })
+                const identifiedEvent = EventModels.find((eventModel) =>
+                    isMatch(data, eventModel.shapeProfile)
+                )
+
+                if (!identifiedEvent) {
+                    log.error(`Unifi event not recognized: ${data}`)
+                    return
+                }
 
                 const Identified =
-                    IdentifiedEvent &&
-                    self.config.eventIds.includes(IdentifiedEvent.metadata.id)
+                    identifiedEvent &&
+                    self.config.eventIds.includes(identifiedEvent.metadata.id)
 
-                if (Identified) {
-                    const Camera =
-                        self.accessControllerNode.bootstrapObject!.cameras.filter(
-                            (C: any) => C.id === self.config.cameraId
-                        )[0]
-                    const HasDuration = IdentifiedEvent!.metadata.hasDuration
-                    const HasEvaluationValue =
-                        IdentifiedEvent!.metadata.valueExpression
-
-                    const UserPL: any = {
-                        payload: {
-                            cameraName: Camera.name,
-                            cameraType: Camera.type,
-                            cameraId: Camera.id,
-                            event: IdentifiedEvent!.metadata.label,
-                            eventId: EID,
-                            hasDuration: HasDuration,
-                        },
-                    }
-
-                    if (HasDuration) {
-                        UserPL.payload.eventStatus = 'Started'
-                        UserPL.payload.timestamps = {
-                            startDate: data.payload.start,
-                        }
-                    } else {
-                        UserPL.payload.timestamps = {
-                            eventDate: data.payload.start || Now,
-                        }
-                    }
-
-                    if (HasEvaluationValue) {
-                        const EXP = RED.util.prepareJSONataExpression(
-                            IdentifiedEvent!.metadata.valueExpression,
-                            self
-                        )
-                        const Value = RED.util.evaluateJSONataExpression(
-                            EXP,
-                            data
-                        )
-                        UserPL.payload.value = Value
-                    }
-
-                    if (self.config.snapshotMode === 'None') {
-                        UserPL.payload.snapshotAvailability = 'DISABLED'
-                    }
-
-                    if (SnapRequiremnets.includes(self.config.snapshotMode)) {
-                        const TNS: ThumbnailSupport =
-                            IdentifiedEvent!.metadata.thumbnailSupport
-
-                        switch (TNS) {
-                            case ThumbnailSupport.NONE:
-                                UserPL.payload.snapshotAvailability =
-                                    'NOT_SUPPORTED'
-                                break
-
-                            case ThumbnailSupport.SINGLE_DELAYED:
-                                DelaySnapshot(EID)
-                                UserPL.payload.snapshotAvailability = 'DELAYED'
-                                break
-
-                            case ThumbnailSupport.START_END:
-                            case ThumbnailSupport.START_WITH_DELAYED_END:
-                            case ThumbnailSupport.SINGLE:
-                                try {
-                                    UserPL.payload.snapshotBuffer =
-                                        await getSnapshot(EID)
-                                    UserPL.payload.snapshotAvailability =
-                                        'INLINE'
-                                } catch (e) {
-                                    UserPL.payload.snapshotAvailability =
-                                        'ERROR'
-                                    console.error(e)
-                                }
-                                break
-                        }
-                    }
-
-                    if (HasDuration) {
-                        WaitingForEnd[EID] = RED.util.cloneMessage(UserPL)
-                        WaitingForEnd[EID].internal = {
-                            identifiedEvent: IdentifiedEvent,
-                        }
-                    }
-
-                    UserPL.payload.originalEventData = data
-                    self.send([UserPL, undefined])
+                if (!Identified) {
+                    log.debug(
+                        `Unhandled unifi event received: ${identifiedEvent.metadata}`
+                    )
+                    return
                 }
+
+                // Camera should always be found, as this event body wouldn't have triggered otherwise
+                const Camera =
+                    self.accessControllerNode.bootstrapObject?.cameras?.find(
+                        (C: any) => C.id === self.config.cameraId
+                    )
+
+                if (!Camera) {
+                    log.error(
+                        "Seriously! This error should not occur - we wouldn't be here if the camera was not identified at the socket level."
+                    )
+                    return
+                }
+
+                const HasDuration = identifiedEvent.metadata.hasDuration
+
+                const UserPL: any = {
+                    payload: {
+                        cameraName: Camera.name,
+                        cameraType: Camera.type,
+                        cameraId: Camera.id,
+                        event: identifiedEvent.metadata.label,
+                        eventId: EID,
+                        hasDuration: HasDuration,
+                    },
+                }
+
+                if (HasDuration) {
+                    UserPL.payload.eventStatus = 'Started'
+                    UserPL.payload.timestamps = {
+                        startDate: data.payload.start,
+                    }
+                } else {
+                    UserPL.payload.timestamps = {
+                        eventDate: data.payload.start || Now,
+                    }
+                }
+
+                if (identifiedEvent.metadata.valueExpression) {
+                    const EXP = RED.util.prepareJSONataExpression(
+                        identifiedEvent.metadata.valueExpression,
+                        self
+                    )
+                    UserPL.payload.value = RED.util.evaluateJSONataExpression(
+                        EXP,
+                        data
+                    )
+                }
+
+                if (self.config.snapshotMode === 'None') {
+                    UserPL.payload.snapshotAvailability = 'DISABLED'
+                }
+
+                if (
+                    initialSnapshotModeRequirements.includes(
+                        self.config.snapshotMode
+                    )
+                ) {
+                    const EventThumbnailSupport: ThumbnailSupport =
+                        identifiedEvent.metadata.thumbnailSupport
+
+                    switch (EventThumbnailSupport) {
+                        case ThumbnailSupport.NONE:
+                            UserPL.payload.snapshotAvailability =
+                                'NOT_SUPPORTED'
+                            break
+
+                        case ThumbnailSupport.SINGLE_DELAYED:
+                            DelaySnapshot(EID)
+                            UserPL.payload.snapshotAvailability = 'DELAYED'
+                            break
+
+                        case ThumbnailSupport.START_END:
+                        case ThumbnailSupport.START_WITH_DELAYED_END:
+                        case ThumbnailSupport.SINGLE:
+                            try {
+                                UserPL.payload.snapshotBuffer =
+                                    await getSnapshot(EID)
+                                UserPL.payload.snapshotAvailability = 'INLINE'
+                            } catch (e) {
+                                UserPL.payload.snapshotAvailability = 'ERROR'
+                                console.error(e)
+                            }
+                            break
+                    }
+                }
+
+                if (HasDuration) {
+                    startEvents[EID] = RED.util.cloneMessage(UserPL)
+                    startEvents[EID].internal = {
+                        identifiedEvent: identifiedEvent,
+                    }
+                }
+
+                UserPL.payload.originalEventData = data
+                self.send([UserPL, undefined])
             }
         }
 

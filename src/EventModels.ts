@@ -11,22 +11,19 @@ export type Metadata =
           label: string
           id: string
           hasDuration: false
-          valueExpression: string
+          valueExpression?: string
           thumbnailSupport: ThumbnailSupport
       }
     | {
           label: string
           id: string
-          hasDuration: boolean
-          /* This must not be provided if hasDuration is true, but we need to check if it exists later, hence why its here and forced to be undefined */
-          /* Removing it here throws on build */
-          /* If someone can improve on this - please do so :) - i don't do much typescript */
-          valueExpression?: undefined
+          hasDuration: true
+          valueExpression?: never
           thumbnailSupport: ThumbnailSupport
       }
 
 export type UnifiEventModel = {
-    shapeProfile: Record<string, any>
+    shapeProfile: Record<string, unknown>
     metadata: Metadata
 }
 

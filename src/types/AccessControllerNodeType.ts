@@ -3,9 +3,9 @@ import { Node } from 'node-red'
 
 import { SharedProtectWebSocket } from '../SharedProtectWebSocket'
 import AccessControllerNodeConfigType from './AccessControllerNodeConfigType'
+import { Bootstrap } from './Bootstrap'
 import ControllerType from './ControllerType'
 import { UnifiResponse } from './UnifiResponse'
-
 
 type AccessControllerNodeType = Node & {
     config: AccessControllerNodeConfigType
@@ -31,10 +31,11 @@ type AccessControllerNodeType = Node & {
     controllerType: ControllerType
 
     // The current bootstrap (more importantly the lastUpdateId and Cam ID's)
-    bootstrapObject?: Record<string, any>
+    bootstrapObject?: Bootstrap
 
     // The Shared Websocket used by all Protect Nodes
     protectSharedWS?: SharedProtectWebSocket
 }
+
 
 export default AccessControllerNodeType

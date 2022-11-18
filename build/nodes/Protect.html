@@ -9,7 +9,7 @@
                 required: false,
             },
             accessControllerNodeId: {
-                value: undefined,
+                value: '',
                 type: 'unifi-access-controller',
                 required: true,
             },
@@ -26,10 +26,12 @@
                 required: true,
             },
             snapshotW: {
+                validate: RED.validators.number(),
                 value: 360,
                 required: true,
             },
             snapshotH: {
+                validate: RED.validators.number(),
                 value: 360,
                 required: true,
             },
@@ -71,15 +73,9 @@
             $('#el-node-input-delayedSnapshotTime').val(
                 this.delayedSnapshotTime
             )
-
             if (this.cameraId) {
                 selectedCamera = this.cameraId
             }
-
-            if (this.accessControllerNodeId) {
-                listCameras(this.accessControllerNodeId)
-            }
-
             $('#node-input-accessControllerNodeId').off('change')
             $('#node-input-accessControllerNodeId').change(controllerSelected)
         },
@@ -87,15 +83,10 @@
 
     function controllerSelected() {
         const ControllerID = $('#node-input-accessControllerNodeId').val()
-
-       
-
         if (selectedController === ControllerID) {
             return
         }
-
         selectedController = ControllerID
-
         if (ControllerID !== undefined && ControllerID !== '_ADD_') {
             listCameras(ControllerID)
         }
@@ -130,14 +121,12 @@
     </div>
     <div class="form-row">
         <label for="node-input-accessControllerNodeId"><i class="fa fa-globe"></i> Controller</label>
-        <select id="node-input-accessControllerNodeId">
-            <option value="">Choose...</option>
+        <select id="node-input-accessControllerNodeId" onchange="">
         </select>
     </div>
     <div class="form-row">
         <label for="node-input-cameraId"><i class="fa fa-video-camera"></i> Camera</label >
         <select id="node-input-cameraId">
-            <option value="">Choose...</option>
         </select>
     </div>
     <div class="form-row">

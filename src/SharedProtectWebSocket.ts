@@ -6,6 +6,7 @@ import { endpoints } from './Endpoints'
 import { ProtectApiUpdates } from './lib/ProtectApiUpdates'
 import AccessControllerNodeConfigType from './types/AccessControllerNodeConfigType'
 import AccessControllerNodeType from './types/AccessControllerNodeType'
+import { Bootstrap } from './types/Bootstrap'
 
 const CLOSE_REASON = 'SELF_CLOSE'
 export type WSDataCallback = (data: any) => void
@@ -15,14 +16,14 @@ export interface Interest {
 }
 
 export class SharedProtectWebSocket {
-    private bootstrap: Record<string, any>
+    private bootstrap: Bootstrap
     private callbacks: { [nodeId: string]: Interest }
     private ws?: WebSocket
     private accessControllerConfig: AccessControllerNodeConfigType
     private accessController: AccessControllerNodeType
     private wsLogger: Loggers
-    private heartbeatTimer: any
-    private reconnectTimer: any
+    private heartbeatTimer?: NodeJS.Timeout
+    private reconnectTimer?: NodeJS.Timeout
     private didOnceConnect = false
     private RECONNECT_TIMEOUT = 90000
     private HEARTBEAT_INTERVAL = 15000
@@ -31,7 +32,7 @@ export class SharedProtectWebSocket {
     constructor(
         AccessController: AccessControllerNodeType,
         config: AccessControllerNodeConfigType,
-        initialBootstrap: Record<string, any>
+        initialBootstrap: Bootstrap
     ) {
         this.bootstrap = initialBootstrap
         this.callbacks = {}
@@ -47,12 +48,12 @@ export class SharedProtectWebSocket {
 
         this.wsLogger = logger('UniFi', 'SharedProtectWebSocket')
 
-        this.Connect().catch((Error) => {
+        this.connect().catch((Error) => {
             console.error(Error)
         })
     }
 
-    Shutdown(): void {
+    shutdown(): void {
         this.disconnect()
         this.callbacks = {}
     }
@@ -61,7 +62,7 @@ export class SharedProtectWebSocket {
     private disconnect(): void {
         this.wsLogger.debug('Disconnecting...')
         this.pongReceived = false
-        clearTimeout(this.heartbeatTimer)
+        if (this.heartbeatTimer) clearTimeout(this.heartbeatTimer)
         this.ws?.removeAllListeners()
         this.ws?.close(1000, CLOSE_REASON)
         this.ws?.terminate()
@@ -70,7 +71,7 @@ export class SharedProtectWebSocket {
 
     // Heartbeat in 15, 14, 13....
     private scheduleHeartbeat(): void {
-        this.wsLogger.debug(
+        this.wsLogger.trace(
             `Scheduling heartbeat: ${this.HEARTBEAT_INTERVAL}...`
         )
         this.heartbeatTimer = setTimeout(
@@ -81,7 +82,7 @@ export class SharedProtectWebSocket {
 
     // The Heartbeat its self
     private heartbeat(): void {
-        this.wsLogger.debug('Sending heartbeat...')
+        this.wsLogger.trace('Sending heartbeat...')
         this.pongReceived = false
         this.ws?.ping()
         this.reconnect()
@@ -93,8 +94,8 @@ export class SharedProtectWebSocket {
             return
         }
         this.pongReceived = true
-        this.wsLogger.debug('Heartbeat received, cancelling reconnects...')
-        clearTimeout(this.reconnectTimer)
+        this.wsLogger.trace('Heartbeat received, cancelling reconnects...')
+        if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
         this.scheduleHeartbeat()
     }
 
@@ -105,13 +106,13 @@ export class SharedProtectWebSocket {
         )
         this.reconnectTimer = setTimeout(() => {
             this.disconnect()
-            this.Connect().catch((Error) => {
+            this.connect().catch((Error) => {
                 console.error(Error)
             })
         }, this.RECONNECT_TIMEOUT)
     }
 
-    private Connect(): Promise<void> {
+    private connect(): Promise<void> {
         return new Promise(async (resolve, reject) => {
             const url = `${endpoints.protocol.webSocket}${this.accessControllerConfig.controllerIp}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
 
@@ -194,7 +195,7 @@ export class SharedProtectWebSocket {
         })
     }
 
-    degisterInterest(nodeId: string): void {
+    deregisterInterest(nodeId: string): void {
         delete this.callbacks[nodeId]
     }
 
@@ -202,14 +203,14 @@ export class SharedProtectWebSocket {
         this.callbacks[nodeId] = interest
     }
 
-    updateLastUpdateId(newBootstrap: Record<string, any>): void {
+    updateLastUpdateId(newBootstrap: Bootstrap): void {
         if (newBootstrap.lastUpdateId !== this.bootstrap.lastUpdateId) {
             this.wsLogger.debug(
                 'New lastUpdateId received, re-configuring Shared Socket'
             )
             this.bootstrap = newBootstrap
             this.disconnect()
-            this.Connect().catch((Error) => {
+            this.connect().catch((Error) => {
                 console.error(Error)
             })
         } else {

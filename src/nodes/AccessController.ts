@@ -7,6 +7,7 @@ import { endpoints } from '../Endpoints'
 import { SharedProtectWebSocket } from '../SharedProtectWebSocket'
 import AccessControllerNodeConfigType from '../types/AccessControllerNodeConfigType'
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
+import { Bootstrap } from '../types/Bootstrap'
 import { HttpError } from '../types/HttpError'
 import { UnifiResponse } from '../types/UnifiResponse'
 
@@ -44,7 +45,7 @@ module.exports = (RED: NodeAPI) => {
         self.controllerType = self.config.controllerType ?? 'UniFiOSConsole'
         self.abortController = new AbortController()
 
-        // Register an Admin HTTP endpioint - so node config editors can obtain bootstraps (to obtain listings)
+        // Register an Admin HTTP endpoint - so node config editors can obtain bootstraps (to obtain listings)
         RED.httpAdmin.get(
             `/nrchkb/unifi/bootsrap/${self.id}/`,
             RED.auth.needsPermission('flows.write'),
@@ -58,7 +59,7 @@ module.exports = (RED: NodeAPI) => {
             }
         )
         // Remove HTTP Endpoint
-        const RemoveAdminEP = () => {
+        const removeBootstrapHTTPEndpoint = () => {
             const Check = (Route: any) => {
                 if (Route.route === undefined) {
                     return true
@@ -81,7 +82,7 @@ module.exports = (RED: NodeAPI) => {
         const getBootstrap = async (init?: boolean) => {
             self.request(self.id, bootstrapURI, 'GET', undefined, 'json')
                 .then((res: UnifiResponse) => {
-                    self.bootstrapObject = res
+                    self.bootstrapObject = res as Bootstrap
 
                     if (init) {
                         // Fire up a shared websocket to the Protect WS endpoint
@@ -97,8 +98,10 @@ module.exports = (RED: NodeAPI) => {
                         )
                     }
                 })
-                .catch((_) => {
-                    // Currently, assume they do not have a Protect instance
+                .catch((error) => {
+                    log.debug(
+                        `Received error when obtaining bootstrap: ${error}, assuming this is to be expected, i.e no protect instance.`
+                    )
                 })
         }
 
@@ -247,8 +250,8 @@ module.exports = (RED: NodeAPI) => {
         self.on('close', () => {
             self.stopped = true
             clearTimeout(refreshTimeout)
-            RemoveAdminEP()
-            self.protectSharedWS?.Shutdown()
+            removeBootstrapHTTPEndpoint()
+            self.protectSharedWS?.shutdown()
             self.abortController.abort()
 
             const url = urlBuilder(
