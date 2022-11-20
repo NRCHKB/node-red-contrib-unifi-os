@@ -68,7 +68,6 @@
             this.delayedSnapshotTime = parseInt(Element.val())
         },
         oneditprepare: function () {
-            selectedController = undefined
             selectedCamera = undefined
             $('#el-node-input-delayedSnapshotTime').val(
                 this.delayedSnapshotTime
@@ -76,25 +75,23 @@
             if (this.cameraId) {
                 selectedCamera = this.cameraId
             }
-            $('#node-input-accessControllerNodeId').off('change')
             $('#node-input-accessControllerNodeId').change(controllerSelected)
+            showHideSnapshotOptions()
         },
     })
 
     function controllerSelected() {
         const ControllerID = $('#node-input-accessControllerNodeId').val()
-        if (selectedController === ControllerID) {
-            return
-        }
-        selectedController = ControllerID
-        if (ControllerID !== undefined && ControllerID !== '_ADD_') {
+        if (ControllerID && ControllerID !== '_ADD_') {
             listCameras(ControllerID)
         }
     }
 
     function listCameras(ControllerID) {
         $('#node-input-cameraId').empty()
-        $('#node-input-cameraId').append(`<option value="">Choose...</option>`)
+        $('#node-input-cameraId').append(
+            `<option value="" selected>Choose...</option>`
+        )
 
         $.getJSON(`nrchkb/unifi/bootsrap/${ControllerID}`, (data) => {
             data.cameras.forEach((Camera) => {
@@ -105,11 +102,23 @@
             if (selectedCamera) {
                 $('#node-input-cameraId').val(selectedCamera)
             }
+            $('#node-warning').fadeOut('fast')
         }).fail(function () {
-            alert(
-                'This Unifi OS Console, does not appear to have a Protect Instance configured.'
-            )
+            $('#node-warning').fadeIn('fast')
         })
+    }
+
+    function showHideSnapshotOptions() {
+        const Value = $('#node-input-snapshotMode').val()
+        switch (Value) {
+            case 'None':
+                $('.unifi-snapshot').fadeOut('fast')
+                break
+
+            default:
+                $('.unifi-snapshot').fadeIn('fast')
+                break
+        }
     }
 </script>
 
@@ -121,12 +130,14 @@
     </div>
     <div class="form-row">
         <label for="node-input-accessControllerNodeId"><i class="fa fa-globe"></i> Controller</label>
-        <select id="node-input-accessControllerNodeId" onchange="">
+        <select id="node-input-accessControllerNodeId">
+            <option value="">Choose...</option>
         </select>
     </div>
     <div class="form-row">
         <label for="node-input-cameraId"><i class="fa fa-video-camera"></i> Camera</label >
         <select id="node-input-cameraId">
+            <option value="" selected>Choose...</option>
         </select>
     </div>
     <div class="form-row">
@@ -142,28 +153,31 @@
     </div>
     <div class="form-row">
         <label for="node-input-snapshotMode"><i class="fa fa-image"></i> Snapshots</label>
-        <select id="node-input-snapshotMode">
+        <select id="node-input-snapshotMode" onchange="showHideSnapshotOptions()">
             <option value="None" selected>None</option>
             <option value="Initial">Initial Only (if supported)</option>
             <option value="InitialDelayed">Initial And Delayed (if supported)</option>
             <option value="InitialRetain">Retain Initial (if supported)</option>
         </select>
     </div>
-    <div class="form-row">
+    <div class="form-row unifi-snapshot">
         <label for="node-input-snapshotW"><i class="fa fa fa-arrows-h"></i> Width</label>
         <input type="number" id="node-input-snapshotW" placeholder="360" />
     </div>
-    <div class="form-row">
+    <div class="form-row unifi-snapshot">
         <label for="node-input-snapshotH"><i class="fa fa-arrows-v"></i> Height</label>
         <input type="number" id="node-input-snapshotH" placeholder="360" />
     </div>
-    <div class="form-row">
+    <div class="form-row unifi-snapshot">
         <label for="el-node-input-delayedSnapshotTime"><i class="fa fa-clock-o"></i> Delay Time</label>
         <input type="number" id="el-node-input-delayedSnapshotTime" placeholder="2000" />
     </div>
-    <div class="form-tips" id="node-tip">
-        Caution: The larger the snapshot size, the more time needed to deliver the event to your flow. Not all event types support a snapshot, therefore will not be included. 
+    <div class="form-tips unifi-snapshot" id="node-tip">
+        <span style="font-weight:bold;">Caution:</span> The larger the snapshot size, the more time needed to deliver the event to your flow. Not all event types support a snapshot, therefore will not be included. 
         The <code>Delay Time</code> value represents how long to give the controller to generate any snapshot that are not immediately available at the time of the event.
+    </div>
+    <div class="form-tips" id="node-warning">
+        <span style="color:red; font-weight:bold;">Warning:</span> The selected console does not appear to have a protect Instance running, or it's config has just been created and needs deploying before cameras can be fetched.
     </div>
 </script>
 

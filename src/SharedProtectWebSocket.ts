@@ -39,12 +39,15 @@ export class SharedProtectWebSocket {
         this.accessControllerConfig = config
         this.accessController = AccessController
 
-        this.RECONNECT_TIMEOUT =
-            this.accessControllerConfig.protectSocketReconnectTimeout ||
-            this.RECONNECT_TIMEOUT
-        this.HEARTBEAT_INTERVAL =
-            this.accessControllerConfig.protectSocketHeartbeatInterval ||
-            this.HEARTBEAT_INTERVAL
+        if (this.accessControllerConfig.protectSocketHeartbeatInterval) {
+            this.HEARTBEAT_INTERVAL =
+                this.accessControllerConfig.protectSocketHeartbeatInterval
+        }
+
+        if (this.accessControllerConfig.protectSocketReconnectTimeout) {
+            this.RECONNECT_TIMEOUT =
+                this.accessControllerConfig.protectSocketReconnectTimeout
+        }
 
         this.wsLogger = logger('UniFi', 'SharedProtectWebSocket')
 
@@ -121,9 +124,7 @@ export class SharedProtectWebSocket {
             this.ws = new WebSocket(url, {
                 rejectUnauthorized: false,
                 headers: {
-                    Cookie: await this.accessController
-                        .getAuthCookie()
-                        .then((value) => value),
+                    Cookie: await this.accessController.getAuthCookie(),
                 },
             })
 

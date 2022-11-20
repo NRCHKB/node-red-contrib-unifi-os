@@ -244,7 +244,7 @@ module.exports = (RED: NodeAPI) => {
                 )
 
                 if (!identifiedEvent) {
-                    log.error(`Unifi event not recognized: ${data}`)
+                    log.trace(`Unifi event not recognized: ${data}`)
                     return
                 }
 
