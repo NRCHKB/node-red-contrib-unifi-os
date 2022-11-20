@@ -1,16 +1,21 @@
 import { logger } from '@nrchkb/logger'
-import Axios, { AxiosResponse } from 'axios'
+import Axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
 import * as https from 'https'
 import { NodeAPI } from 'node-red'
 
 import { endpoints } from '../Endpoints'
+import { SharedProtectWebSocket } from '../SharedProtectWebSocket'
 import AccessControllerNodeConfigType from '../types/AccessControllerNodeConfigType'
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
+import { Bootstrap } from '../types/Bootstrap'
 import { HttpError } from '../types/HttpError'
 import { UnifiResponse } from '../types/UnifiResponse'
+
 const {
     AbortController,
 } = require('abortcontroller-polyfill/dist/cjs-ponyfill')
+
+const bootstrapURI = '/proxy/protect/api/bootstrap'
 
 const urlBuilder = (self: AccessControllerNodeType, endpoint?: string) => {
     return (
@@ -40,6 +45,66 @@ module.exports = (RED: NodeAPI) => {
         self.controllerType = self.config.controllerType ?? 'UniFiOSConsole'
         self.abortController = new AbortController()
 
+        // Register an Admin HTTP endpoint - so node config editors can obtain bootstraps (to obtain listings)
+        RED.httpAdmin.get(
+            `/nrchkb/unifi/bootsrap/${self.id}/`,
+            RED.auth.needsPermission('flows.write'),
+            (_req, res) => {
+                if (self.bootstrapObject) {
+                    res.status(200).json(self.bootstrapObject)
+                } else {
+                    // lets issue a 501 - Not Implemented for this host, given no Protect bootstrap was available
+                    res.status(501).end()
+                }
+            }
+        )
+        // Remove HTTP Endpoint
+        const removeBootstrapHTTPEndpoint = () => {
+            const Check = (Route: any) => {
+                if (Route.route === undefined) {
+                    return true
+                }
+                if (
+                    !Route.route.path.startsWith(
+                        `/nrchkb/unifi/bootsrap/${self.id}`
+                    )
+                ) {
+                    return true
+                }
+
+                return false
+            }
+            RED.httpAdmin._router.stack =
+                RED.httpAdmin._router.stack.filter(Check)
+        }
+
+        // The Boostrap request
+        const getBootstrap = async (init?: boolean) => {
+            self.request(self.id, bootstrapURI, 'GET', undefined, 'json')
+                .then((res: UnifiResponse) => {
+                    self.bootstrapObject = res as Bootstrap
+
+                    if (init) {
+                        // Fire up a shared websocket to the Protect WS endpoint
+                        self.protectSharedWS = new SharedProtectWebSocket(
+                            self,
+                            self.config,
+                            self.bootstrapObject
+                        )
+                    } else {
+                        // Update the shared websocket to the Protect WS endpoint, so we can connect to its new lastUpdateId
+                        self.protectSharedWS?.updateLastUpdateId(
+                            self.bootstrapObject
+                        )
+                    }
+                })
+                .catch((error) => {
+                    log.debug(
+                        `Received error when obtaining bootstrap: ${error}, assuming this is to be expected, i.e no protect instance.`
+                    )
+                })
+        }
+
         const refresh = (init?: boolean) => {
             self.getAuthCookie(true)
                 .catch((error) => {
@@ -54,6 +119,8 @@ module.exports = (RED: NodeAPI) => {
                     } else {
                         log.debug('Cookies refreshed')
                     }
+                    // Fetch bootstrap (only for Protect)
+                    getBootstrap(init)
                 })
         }
 
@@ -133,7 +200,7 @@ module.exports = (RED: NodeAPI) => {
 
             return new Promise((resolve, reject) => {
                 const axiosRequest = async () => {
-                    Axios.request<UnifiResponse>({
+                    const Config: AxiosRequestConfig = {
                         url,
                         method,
                         data,
@@ -152,7 +219,9 @@ module.exports = (RED: NodeAPI) => {
                         },
                         withCredentials: true,
                         responseType,
-                    })
+                    }
+
+                    Axios.request<UnifiResponse>(Config)
                         .catch((error) => {
                             if (error instanceof HttpError) {
                                 if (error.status === 401) {
@@ -181,6 +250,8 @@ module.exports = (RED: NodeAPI) => {
         self.on('close', () => {
             self.stopped = true
             clearTimeout(refreshTimeout)
+            removeBootstrapHTTPEndpoint()
+            self.protectSharedWS?.shutdown()
             self.abortController.abort()
 
             const url = urlBuilder(

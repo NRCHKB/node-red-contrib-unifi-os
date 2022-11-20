@@ -1,7 +1,9 @@
 import { Method, ResponseType } from 'axios'
 import { Node } from 'node-red'
 
+import { SharedProtectWebSocket } from '../SharedProtectWebSocket'
 import AccessControllerNodeConfigType from './AccessControllerNodeConfigType'
+import { Bootstrap } from './Bootstrap'
 import ControllerType from './ControllerType'
 import { UnifiResponse } from './UnifiResponse'
 
@@ -27,6 +29,13 @@ type AccessControllerNodeType = Node & {
     }
     // Either UniFi OS Console for UDM or UniFi Network Application for custom app env
     controllerType: ControllerType
+
+    // The current bootstrap (more importantly the lastUpdateId and Cam ID's)
+    bootstrapObject?: Bootstrap
+
+    // The Shared Websocket used by all Protect Nodes
+    protectSharedWS?: SharedProtectWebSocket
 }
+
 
 export default AccessControllerNodeType
