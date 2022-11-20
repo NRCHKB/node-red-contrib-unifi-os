@@ -189,7 +189,10 @@ module.exports = (RED: NodeAPI) => {
                         delete UserPL.payload.snapshotBuffer
                     }
 
-                    if (self.config.snapshotMode === 'None') {
+                    if (
+                        self.config.snapshotMode === 'None' ||
+                        self.config.snapshotMode === 'Initial'
+                    ) {
                         UserPL.payload.snapshotAvailability = 'DISABLED'
                     }
 
