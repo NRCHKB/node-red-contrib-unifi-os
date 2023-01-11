@@ -1,6 +1,5 @@
 <script type="text/javascript">
     let selectedCamera
-    let selectedController
     RED.nodes.registerType('unifi-protect', {
         category: 'UniFi',
         defaults: {
@@ -66,6 +65,7 @@
         oneditsave: function () {
             const Element = $('#el-node-input-delayedSnapshotTime')
             this.delayedSnapshotTime = parseInt(Element.val())
+            $('#node-input-accessControllerNodeId').off('change')
         },
         oneditprepare: function () {
             selectedCamera = undefined
@@ -75,8 +75,14 @@
             if (this.cameraId) {
                 selectedCamera = this.cameraId
             }
-            $('#node-input-accessControllerNodeId').change(controllerSelected)
-            showHideSnapshotOptions()
+
+            setTimeout(() => {
+                $('#node-input-accessControllerNodeId').change(
+                    controllerSelected
+                )
+                controllerSelected()
+                showHideSnapshotOptions()
+            }, 100)
         },
     })
 
@@ -142,13 +148,15 @@
     </div>
     <div class="form-row">
         <label for="node-input-eventIds"><i class="fa fa-list"></i> Events</label >
-        <select id="node-input-eventIds" multiple style="height:120px">
+        <select id="node-input-eventIds" multiple style="height:170px">
             <option value="MotionEvent">Motion Event</option>
             <option value="MotionDetection">Motion Detection</option>
             <option value="DoorBell">Door Bell Ring</option>
             <option value="Package">Package Detected</option>
             <option value="Vehicle">Vehicle Detected</option>
             <option value="Person">Person Detected</option>
+            <option value="SmokeAlarm">Smoke Alarm</option>
+            <option value="COAlarm">CO Alarm</option>
         </select>
     </div>
     <div class="form-row">
@@ -176,9 +184,13 @@
         <span style="font-weight:bold;">Caution:</span> The larger the snapshot size, the more time needed to deliver the event to your flow. Not all event types support a snapshot, therefore will not be included. 
         The <code>Delay Time</code> value represents how long to give the controller to generate any snapshot that are not immediately available at the time of the event.
     </div>
+    <div class="form-tips">
+        <span style="color:red; font-weight:bold;">Note:</span> The CO and Smoke Alarms are based on <strong>UL-217</strong> and <strong>UL-2034</strong> compliant sirens respectively. Please check your sirens, to ensure they are compliant with these standards. Additionally, the selected camera must supoort these detections.
+    </div>
     <div class="form-tips" id="node-warning">
         <span style="color:red; font-weight:bold;">Warning:</span> The selected console does not appear to have a protect Instance running, or it's config has just been created and needs deploying before cameras can be fetched.
     </div>
+    
 </script>
 
 <!-- prettier-ignore -->

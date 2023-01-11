@@ -38,6 +38,38 @@ const EventModels: UnifiEventModel[] = [
             },
         },
         metadata: {
+            label: 'Smoke Alarm (UL-217)',
+            hasDuration: false,
+            id: 'SmokeAlarm',
+            thumbnailSupport: ThumbnailSupport.NONE,
+        },
+    },
+    {
+        shapeProfile: {
+            action: {
+                modelKey: 'camera',
+            },
+            payload: {
+                isMotionDetected: true,
+            },
+        },
+        metadata: {
+            label: 'CO Alarm (UL-2034)',
+            hasDuration: false,
+            id: 'COAlarm',
+            thumbnailSupport: ThumbnailSupport.NONE,
+        },
+    },
+    {
+        shapeProfile: {
+            action: {
+                modelKey: 'camera',
+            },
+            payload: {
+                isMotionDetected: true,
+            },
+        },
+        metadata: {
             label: 'Motion Detection',
             hasDuration: false,
             id: 'MotionDetection',
