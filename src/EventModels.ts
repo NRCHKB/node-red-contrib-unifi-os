@@ -31,33 +31,18 @@ const EventModels: UnifiEventModel[] = [
     {
         shapeProfile: {
             action: {
-                modelKey: 'camera',
+                action: 'add',
+                modelKey: 'event',
             },
             payload: {
-                isMotionDetected: true,
+                type: 'smartAudioDetect',
             },
         },
         metadata: {
-            label: 'Smoke Alarm (UL-217)',
+            label: 'Alarm',
             hasDuration: false,
-            id: 'SmokeAlarm',
-            thumbnailSupport: ThumbnailSupport.NONE,
-        },
-    },
-    {
-        shapeProfile: {
-            action: {
-                modelKey: 'camera',
-            },
-            payload: {
-                isMotionDetected: true,
-            },
-        },
-        metadata: {
-            label: 'CO Alarm (UL-2034)',
-            hasDuration: false,
-            id: 'COAlarm',
-            thumbnailSupport: ThumbnailSupport.NONE,
+            id: 'Alarm',
+            thumbnailSupport: ThumbnailSupport.SINGLE_DELAYED,
         },
     },
     {

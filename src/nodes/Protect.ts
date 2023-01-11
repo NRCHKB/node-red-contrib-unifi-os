@@ -74,7 +74,7 @@ module.exports = (RED: NodeAPI) => {
         // Used to store the Start of an event with a duration.
         const startEvents: any = {}
 
-        self.on('close', (done: () => void) => {
+        self.on('close', (_: boolean, done: () => void) => {
             self.accessControllerNode.protectSharedWS?.deregisterInterest(
                 self.id
             )

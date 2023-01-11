@@ -209,10 +209,7 @@ module.exports = (RED: NodeAPI) => {
                             keepAlive: true,
                         }),
                         headers: {
-                            cookie:
-                                (await self
-                                    .getAuthCookie()
-                                    .then((value) => value)) ?? '',
+                            cookie: (await self.getAuthCookie()) ?? '',
                             'Content-Type': 'application/json',
                             Accept: 'application/json',
                             'X-Request-ID': nodeId,
@@ -247,35 +244,44 @@ module.exports = (RED: NodeAPI) => {
             })
         }
 
-        self.on('close', () => {
+        self.on('close', (_: boolean, done: () => void) => {
             self.stopped = true
             clearTimeout(refreshTimeout)
             removeBootstrapHTTPEndpoint()
             self.protectSharedWS?.shutdown()
             self.abortController.abort()
 
-            const url = urlBuilder(
-                self,
-                endpoints[self.controllerType].logout.url
-            )
+            const logout = async () => {
+                const url = urlBuilder(
+                    self,
+                    endpoints[self.controllerType].logout.url
+                )
 
-            Axios.post(
-                url,
-                {},
-                {
-                    httpsAgent: new https.Agent({
-                        rejectUnauthorized: false,
-                        keepAlive: true,
-                    }),
-                }
-            )
-                .catch((error) => {
-                    console.error(error)
-                    log.error('Failed to log out')
-                })
-                .then(() => {
-                    log.trace('Successfully logged out')
-                })
+                Axios.post(
+                    url,
+                    {},
+                    {
+                        httpsAgent: new https.Agent({
+                            rejectUnauthorized: false,
+                            keepAlive: true,
+                        }),
+                        headers: {
+                            cookie: (await self.getAuthCookie()) ?? '',
+                        },
+                    }
+                )
+                    .catch((error) => {
+                        console.error(error)
+                        log.error('Failed to log out')
+                        done()
+                    })
+                    .then(() => {
+                        log.trace('Successfully logged out')
+                        done()
+                    })
+            }
+
+            logout()
         })
 
         // Initial cookies fetch
