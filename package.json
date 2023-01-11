@@ -67,7 +67,7 @@
         "@types/node-red": "^1.2.1",
         "@types/node-red-node-test-helper": "^0.2.2",
         "@types/semver": "^7.3.12",
-        "@types/ws": "^8.5.3",
+        "@types/ws":"^8.5.4",
         "@typescript-eslint/eslint-plugin": "^5.40.1",
         "@typescript-eslint/parser": "^5.40.1",
         "babel-eslint": "^10.1.0",
