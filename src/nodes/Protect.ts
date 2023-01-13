@@ -140,7 +140,7 @@ module.exports = (RED: NodeAPI) => {
         }
 
         // Triger SS timer
-        const DelaySnapshot = (EID: string) => {
+        const DelaySnapshot = (EID: string, Topic: string) => {
             setTimeout(() => {
                 getSnapshot(EID)
                     .then((D) => {
@@ -149,6 +149,7 @@ module.exports = (RED: NodeAPI) => {
                                 associatedEventId: EID,
                                 snapshotBuffer: D,
                             },
+                            topic: Topic,
                         }
                         if (!self.config.fanned) {
                             self.send([undefined, UserPL])
@@ -246,7 +247,10 @@ module.exports = (RED: NodeAPI) => {
                                 }
                                 break
                             case ThumbnailSupport.START_WITH_DELAYED_END:
-                                DelaySnapshot(EID)
+                                DelaySnapshot(
+                                    EID,
+                                    StartOfEvent.payload.cameraName
+                                )
                                 UserPL.payload.snapshotAvailability = 'DELAYED'
                                 break
                         }
@@ -257,6 +261,7 @@ module.exports = (RED: NodeAPI) => {
                     }
 
                     UserPL.payload.originalEventData = data
+                    UserPL.topic = UserPL.payload.cameraName
 
                     if (!self.config.fanned) {
                         self.send([UserPL, undefined])
@@ -365,7 +370,7 @@ module.exports = (RED: NodeAPI) => {
                             break
 
                         case ThumbnailSupport.SINGLE_DELAYED:
-                            DelaySnapshot(EID)
+                            DelaySnapshot(EID, UserPL.payload.cameraName)
                             UserPL.payload.snapshotAvailability = 'DELAYED'
                             break
 
@@ -393,6 +398,7 @@ module.exports = (RED: NodeAPI) => {
                 }
 
                 UserPL.payload.originalEventData = data
+                UserPL.topic = UserPL.payload.cameraName
 
                 if (!self.config.fanned) {
                     self.send([UserPL, undefined])
