@@ -297,23 +297,27 @@ module.exports = (RED: NodeAPI) => {
             }
         })
 
-        self.on('close', async (removed: boolean, done: () => void) => {
-            self.status({
-                fill: 'grey',
-                shape: 'dot',
-                text: 'Disconnecting',
-            })
+        self.on('close', (removed: boolean, done: () => void) => {
+            const cleanup = async () => {
+                self.status({
+                    fill: 'grey',
+                    shape: 'dot',
+                    text: 'Disconnecting',
+                })
 
-            log.debug(
-                `Disconnecting - node ${removed ? 'removed' : 'restarted'}`
-            )
+                log.debug(
+                    `Disconnecting - node ${removed ? 'removed' : 'restarted'}`
+                )
 
-            await stopWebsocket(
-                self,
-                log,
-                `${removed ? 'removed' : 'restarted'}`,
-                done
-            )
+                await stopWebsocket(
+                    self,
+                    log,
+                    `${removed ? 'removed' : 'restarted'}`,
+                    done
+                )
+            }
+
+            cleanup()
         })
 
         if (self.endpoint?.trim().length && !!self.ws) {

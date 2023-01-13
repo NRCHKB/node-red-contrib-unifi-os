@@ -28,7 +28,7 @@ export const endpoints: Endpoints = {
             retry: 5000,
         },
         logout: {
-            url: '/api/logout',
+            url: '/api/auth/logout',
         },
     },
     UniFiNetworkApplication: {

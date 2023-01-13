@@ -1,6 +1,5 @@
 import { logger, loggerSetup } from '@nrchkb/logger'
-import Axios from 'axios'
-import axios from 'axios'
+import Axios, { AxiosHeaders } from 'axios'
 import { NodeAPI } from 'node-red'
 import * as util from 'util'
 
@@ -18,13 +17,14 @@ module.exports = (RED: NodeAPI) => {
             log.debug(`Sending request to: ${config.url}`)
 
             if (config.headers) {
+                const headers = config.headers as AxiosHeaders
                 if (
-                    config.headers.cookie &&
+                    headers.get('cookie') &&
                     config.method?.toLowerCase() !== 'get'
                 ) {
                     // Create x-csrf-token
                     const composedCookie = cookieToObject(
-                        config.headers.cookie as string
+                        headers.get('cookie') as string
                     )
 
                     if ('TOKEN' in composedCookie) {
@@ -38,7 +38,7 @@ module.exports = (RED: NodeAPI) => {
                             )
 
                             if (csrfToken) {
-                                config.headers['x-csrf-token'] = csrfToken
+                                headers.set('x-csrf-token', csrfToken)
                             }
                         }
                     }
@@ -61,7 +61,7 @@ module.exports = (RED: NodeAPI) => {
             return response
         },
         function (error: any) {
-            if (axios.isCancel(error)) {
+            if (Axios.isCancel(error)) {
                 log.trace(`Request cancelled: ${error.message}`)
                 return Promise.reject(error)
             }

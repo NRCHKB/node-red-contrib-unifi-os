@@ -74,7 +74,7 @@ module.exports = (RED: NodeAPI) => {
         // Used to store the Start of an event with a duration.
         const startEvents: any = {}
 
-        self.on('close', (done: () => void) => {
+        self.on('close', (_: boolean, done: () => void) => {
             self.accessControllerNode.protectSharedWS?.deregisterInterest(
                 self.id
             )
@@ -140,7 +140,7 @@ module.exports = (RED: NodeAPI) => {
         }
 
         // Triger SS timer
-        const DelaySnapshot = (EID: string) => {
+        const DelaySnapshot = (EID: string, Topic: string) => {
             setTimeout(() => {
                 getSnapshot(EID)
                     .then((D) => {
@@ -149,8 +149,16 @@ module.exports = (RED: NodeAPI) => {
                                 associatedEventId: EID,
                                 snapshotBuffer: D,
                             },
+                            topic: Topic,
                         }
-                        self.send([undefined, UserPL])
+                        if (!self.config.fanned) {
+                            self.send([undefined, UserPL])
+                        } else {
+                            // SORT
+                            const array = new Array(this.config.outputs)
+                            array[array.length - 1] = UserPL
+                            self.send(array)
+                        }
                     })
                     .catch((e) => {
                         console.error(e)
@@ -160,6 +168,18 @@ module.exports = (RED: NodeAPI) => {
 
         // Register our interest in Protect Updates.
         const handleUpdate = async (data: any) => {
+            /*  This is to mirror the output pin assigmnets
+                we will use indexOf on it later
+            */
+            self.config.eventIds.sort(function (a, b) {
+                if (a > b) return 1
+                if (a < b) return -1
+                return 0
+            })
+
+            // We will update it later
+            let pinIndex = 0
+
             // Get ID
             const EID = data.action.id.split('-')[0]
 
@@ -173,6 +193,9 @@ module.exports = (RED: NodeAPI) => {
 
                 const StartOfEvent = startEvents[EID]
                 if (StartOfEvent !== undefined) {
+                    // This may be crucial later
+                    pinIndex = StartOfEvent._internal.pinIndex
+
                     const EndDate = data.payload.end
                     const Duration =
                         EndDate - StartOfEvent.payload.timestamps.startDate
@@ -202,7 +225,7 @@ module.exports = (RED: NodeAPI) => {
                         )
                     ) {
                         const EventThumbnailSupport: ThumbnailSupport =
-                            StartOfEvent.internal.identifiedEvent.metadata
+                            StartOfEvent._internal.identifiedEvent.metadata
                                 .thumbnailSupport
 
                         switch (EventThumbnailSupport) {
@@ -224,7 +247,7 @@ module.exports = (RED: NodeAPI) => {
                                 }
                                 break
                             case ThumbnailSupport.START_WITH_DELAYED_END:
-                                DelaySnapshot(EID)
+                                DelaySnapshot(EID, UserPL.payload.cameraName)
                                 UserPL.payload.snapshotAvailability = 'DELAYED'
                                 break
                         }
@@ -235,7 +258,17 @@ module.exports = (RED: NodeAPI) => {
                     }
 
                     UserPL.payload.originalEventData = data
-                    self.send([UserPL, undefined])
+                    UserPL.topic = UserPL.payload.cameraName
+
+                    if (!self.config.fanned) {
+                        self.send([UserPL, undefined])
+                    } else {
+                        // SORT
+                        const array = new Array(this.config.outputs)
+                        array[pinIndex] = UserPL
+                        self.send(array)
+                    }
+
                     delete startEvents[EID]
                 }
             } else {
@@ -261,6 +294,11 @@ module.exports = (RED: NodeAPI) => {
                     )
                     return
                 }
+
+                // Get the index of the ID (this will be asscoiated to the output index)
+                pinIndex = self.config.eventIds.indexOf(
+                    identifiedEvent.metadata.id
+                )
 
                 // Camera should always be found, as this event body wouldn't have triggered otherwise
                 const Camera =
@@ -329,7 +367,7 @@ module.exports = (RED: NodeAPI) => {
                             break
 
                         case ThumbnailSupport.SINGLE_DELAYED:
-                            DelaySnapshot(EID)
+                            DelaySnapshot(EID, UserPL.payload.cameraName)
                             UserPL.payload.snapshotAvailability = 'DELAYED'
                             break
 
@@ -350,13 +388,23 @@ module.exports = (RED: NodeAPI) => {
 
                 if (HasDuration) {
                     startEvents[EID] = RED.util.cloneMessage(UserPL)
-                    startEvents[EID].internal = {
+                    startEvents[EID]._internal = {
                         identifiedEvent: identifiedEvent,
+                        pinIndex: pinIndex,
                     }
                 }
 
                 UserPL.payload.originalEventData = data
-                self.send([UserPL, undefined])
+                UserPL.topic = UserPL.payload.cameraName
+
+                if (!self.config.fanned) {
+                    self.send([UserPL, undefined])
+                } else {
+                    // SORT
+                    const array = new Array(this.config.outputs)
+                    array[pinIndex] = UserPL
+                    self.send(array)
+                }
             }
         }
 

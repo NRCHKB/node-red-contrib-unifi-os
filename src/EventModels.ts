@@ -31,6 +31,23 @@ const EventModels: UnifiEventModel[] = [
     {
         shapeProfile: {
             action: {
+                action: 'add',
+                modelKey: 'event',
+            },
+            payload: {
+                type: 'smartAudioDetect',
+            },
+        },
+        metadata: {
+            label: 'Alarm',
+            hasDuration: false,
+            id: 'Alarm',
+            thumbnailSupport: ThumbnailSupport.SINGLE_DELAYED,
+        },
+    },
+    {
+        shapeProfile: {
+            action: {
                 modelKey: 'camera',
             },
             payload: {
