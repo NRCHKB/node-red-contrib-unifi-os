@@ -247,10 +247,7 @@ module.exports = (RED: NodeAPI) => {
                                 }
                                 break
                             case ThumbnailSupport.START_WITH_DELAYED_END:
-                                DelaySnapshot(
-                                    EID,
-                                    StartOfEvent.payload.cameraName
-                                )
+                                DelaySnapshot(EID, UserPL.payload.cameraName)
                                 UserPL.payload.snapshotAvailability = 'DELAYED'
                                 break
                         }
