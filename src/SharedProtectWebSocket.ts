@@ -8,11 +8,23 @@ import AccessControllerNodeConfigType from './types/AccessControllerNodeConfigTy
 import AccessControllerNodeType from './types/AccessControllerNodeType'
 import { Bootstrap } from './types/Bootstrap'
 
+export enum SocketStatus {
+    UNKNOWN = -1,
+    CONNECTED = 0,
+    RECOVERING_CONNECTING = 1,
+    RECOVERING_CONNECTING_ERROR = 2,
+}
+
+let currentStatus: SocketStatus = SocketStatus.UNKNOWN
+
 const CLOSE_REASON = 'SELF_CLOSE'
 export type WSDataCallback = (data: any) => void
+export type WSStatusCallback = (status: SocketStatus) => void
+
 export interface Interest {
     deviceId: string
-    callback: WSDataCallback
+    dataCallback: WSDataCallback
+    statusCallback: WSStatusCallback
 }
 
 export class SharedProtectWebSocket {
@@ -108,11 +120,23 @@ export class SharedProtectWebSocket {
             `Scheduling reconnect: ${this.RECONNECT_TIMEOUT}...`
         )
         this.reconnectTimer = setTimeout(() => {
+            this.updateStatusForNodes(SocketStatus.RECOVERING_CONNECTING)
             this.disconnect()
             this.connect().catch((Error) => {
                 console.error(Error)
             })
         }, this.RECONNECT_TIMEOUT)
+    }
+
+    private updateStatusForNodes = (Status: SocketStatus): Promise<void> => {
+        currentStatus = Status
+        return new Promise((resolve) => {
+            Object.keys(this.callbacks).forEach((ID) => {
+                this.callbacks[ID].statusCallback(Status)
+            })
+
+            resolve()
+        })
     }
 
     private connect(): Promise<void> {
@@ -132,6 +156,9 @@ export class SharedProtectWebSocket {
                 this.wsLogger.error(`${error}`)
                 reject(error)
                 if (this.didOnceConnect) {
+                    this.updateStatusForNodes(
+                        SocketStatus.RECOVERING_CONNECTING_ERROR
+                    )
                     this.reconnect()
                 }
             })
@@ -140,6 +167,9 @@ export class SharedProtectWebSocket {
                 // once connected - no reason to not try to reconnect after a drop (as at this point we know it should be available)
                 this.didOnceConnect = true
                 this.wsLogger.debug(`Connection to ${url} open`)
+
+                this.updateStatusForNodes(SocketStatus.CONNECTED)
+
                 this.ws?.on('message', (data) => {
                     let objectToSend: any
 
@@ -158,7 +188,7 @@ export class SharedProtectWebSocket {
                             Interest.deviceId === objectToSend.payload.camera ||
                             objectToSend.payload.camera === undefined
                         ) {
-                            Interest.callback(objectToSend)
+                            Interest.dataCallback(objectToSend)
                         }
                     })
                 })
@@ -200,8 +230,9 @@ export class SharedProtectWebSocket {
         delete this.callbacks[nodeId]
     }
 
-    registerInterest(nodeId: string, interest: Interest): void {
+    registerInterest(nodeId: string, interest: Interest): SocketStatus {
         this.callbacks[nodeId] = interest
+        return currentStatus
     }
 
     updateLastUpdateId(newBootstrap: Bootstrap): void {

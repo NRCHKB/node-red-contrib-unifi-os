@@ -4,7 +4,7 @@ import { NodeAPI } from 'node-red'
 import util from 'util'
 
 import EventModels, { ThumbnailSupport } from '../EventModels'
-import { Interest } from '../SharedProtectWebSocket'
+import { Interest, SocketStatus } from '../SharedProtectWebSocket'
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
 import ProtectNodeConfigType from '../types/ProtectNodeConfigType'
 import ProtectNodeType from '../types/ProtectNodeType'
@@ -88,7 +88,7 @@ module.exports = (RED: NodeAPI) => {
             self.status({
                 fill: 'grey',
                 shape: 'dot',
-                text: 'Sending',
+                text: 'Sending...',
             })
 
             self.accessControllerNode
@@ -408,11 +408,47 @@ module.exports = (RED: NodeAPI) => {
             }
         }
 
+        const statusCallback = (Status: SocketStatus) => {
+            switch (Status) {
+                case SocketStatus.CONNECTED:
+                    self.status({
+                        fill: 'green',
+                        shape: 'dot',
+                        text: 'Ready/Connected',
+                    })
+                    break
+
+                case SocketStatus.RECOVERING_CONNECTING:
+                    self.status({
+                        fill: 'yellow',
+                        shape: 'dot',
+                        text: 'Recovering...',
+                    })
+                    break
+
+                case SocketStatus.RECOVERING_CONNECTING_ERROR:
+                    self.status({
+                        fill: 'red',
+                        shape: 'dot',
+                        text: 'Recovery Failing!',
+                    })
+                    break
+            }
+        }
+
         const I: Interest = {
             deviceId: this.config.cameraId,
-            callback: handleUpdate,
+            dataCallback: handleUpdate,
+            statusCallback: statusCallback,
         }
-        self.accessControllerNode.protectSharedWS?.registerInterest(self.id, I)
+        const Status =
+            self.accessControllerNode.protectSharedWS?.registerInterest(
+                self.id,
+                I
+            )
+        if (Status) {
+            statusCallback(Status)
+        }
 
         log.debug('Initialized')
     }
