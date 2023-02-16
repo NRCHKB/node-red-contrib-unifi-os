@@ -14,6 +14,10 @@
                 value: '',
                 required: false,
             },
+            wsPort: {
+                value: '',
+                required: false,
+            },
             controllerType: {
                 value: 'UniFiOSConsole',
                 required: true,
@@ -82,8 +86,12 @@
         <input type="text" id="node-config-input-controllerIp" class="unifi-grow" placeholder="Controller IP"/>
     </div>
     <div class="form-row unifi-flex">
-        <label for="node-config-input-controllerPort" class="unifi-width-50"><i class="fa fa-globe"></i> Port</label>
-        <input type="text" id="node-config-input-controllerPort"  class="unifi-grow" placeholder="8443"/>
+        <label for="node-config-input-controllerPort" class="unifi-width-50"><i class="fa fa-globe"></i> Port (HTTP)</label>
+        <input type="text" id="node-config-input-controllerPort"  class="unifi-grow" placeholder="-- Use Type Default --"/>
+    </div>
+    <div class="form-row unifi-flex">
+        <label for="node-config-input-wsPort" class="unifi-width-50"><i class="fa fa-globe"></i> Port (WS)</label>
+        <input type="text" id="node-config-input-wsPort"  class="unifi-grow" placeholder="-- Use Type Default --"/>
     </div>
     <div class="form-row unifi-flex">
         <label for="node-config-input-controllerType" class="unifi-width-50"><i class="fa fa-server"></i> Type</label>
@@ -99,7 +107,7 @@
     <div class="unifi-text-divider">Protect Shared Socket timeouts (ms, 0 - Use defaults)</div>
     <div class="form-row unifi-flex">
         <label for="el-node-config-input-protectSocketReconnectTimeout" class="unifi-width-50"><i class="fa fa-clock-o"></i> Reconnect</label>
-        <input type="number" id="el-node-config-input-protectSocketReconnectTimeout" class="unifi-grow" placeholder="90000"/>
+        <input type="number" id="el-node-config-input-protectSocketReconnectTimeout" class="unifi-grow" placeholder="30000"/>
     </div>
     <div class="form-row unifi-flex">
         <label for="el-node-config-input-protectSocketHeartbeatInterval" class="unifi-width-50"><i class="fa fa-clock-o"></i> Heartbeat</label>

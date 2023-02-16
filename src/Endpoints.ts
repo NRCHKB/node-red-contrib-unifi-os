@@ -6,6 +6,7 @@ type Controllers = {
     logout: {
         url: string
     }
+    wsport: number
 }
 
 type Endpoints = {
@@ -30,6 +31,7 @@ export const endpoints: Endpoints = {
         logout: {
             url: '/api/auth/logout',
         },
+        wsport: 443,
     },
     UniFiNetworkApplication: {
         login: {
@@ -39,5 +41,6 @@ export const endpoints: Endpoints = {
         logout: {
             url: '/api/logout',
         },
+        wsport: 8443,
     },
 }

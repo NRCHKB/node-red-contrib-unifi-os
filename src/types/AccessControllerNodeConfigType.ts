@@ -6,6 +6,7 @@ type AccessControllerNodeConfigType = NodeDef & {
     name: string
     controllerIp: string
     controllerPort?: string
+    wsPort?: string
     controllerType?: ControllerType
     protectSocketReconnectTimeout?: number
     protectSocketHeartbeatInterval?: number

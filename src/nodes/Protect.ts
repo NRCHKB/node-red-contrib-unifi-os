@@ -410,11 +410,19 @@ module.exports = (RED: NodeAPI) => {
 
         const statusCallback = (Status: SocketStatus) => {
             switch (Status) {
-                case SocketStatus.DISCONNECTED:
+                case SocketStatus.UNKNOWN:
                     self.status({
                         fill: 'grey',
                         shape: 'ring',
-                        text: 'Disconnected',
+                        text: 'Unknown',
+                    })
+                    break
+
+                case SocketStatus.CONNECTION_ERROR:
+                    self.status({
+                        fill: 'red',
+                        shape: 'dot',
+                        text: 'Connection error',
                     })
                     break
 
@@ -426,7 +434,7 @@ module.exports = (RED: NodeAPI) => {
                     })
                     break
 
-                case SocketStatus.RECOVERING_CONNECTING:
+                case SocketStatus.RECOVERING_CONNECTION:
                     self.status({
                         fill: 'yellow',
                         shape: 'dot',
@@ -434,11 +442,11 @@ module.exports = (RED: NodeAPI) => {
                     })
                     break
 
-                case SocketStatus.RECOVERING_CONNECTING_ERROR:
+                case SocketStatus.RECOVERY_ERROR:
                     self.status({
                         fill: 'red',
                         shape: 'dot',
-                        text: 'Recovery failing!',
+                        text: 'Recovery failing',
                     })
                     break
             }

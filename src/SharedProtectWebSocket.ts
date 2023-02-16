@@ -9,13 +9,12 @@ import AccessControllerNodeType from './types/AccessControllerNodeType'
 import { Bootstrap } from './types/Bootstrap'
 
 export enum SocketStatus {
-    DISCONNECTED = -1,
+    UNKNOWN = -1,
     CONNECTED = 0,
-    RECOVERING_CONNECTING = 1,
-    RECOVERING_CONNECTING_ERROR = 3,
+    RECOVERING_CONNECTION = 1,
+    RECOVERY_ERROR = 3,
+    CONNECTION_ERROR = 4,
 }
-
-let currentStatus: SocketStatus = SocketStatus.DISCONNECTED
 
 const CLOSE_REASON = 'SELF_CLOSE'
 export type WSDataCallback = (data: any) => void
@@ -42,6 +41,7 @@ export class SharedProtectWebSocket {
     private RECONNECT_ERROR_THRESHOLD = 3
     private pongReceived = false // for some reason we get 2 pongs to 1 ping - this is to clear up confusion on debug
     private reconnectAttempts = 0
+    private currentStatus: SocketStatus = SocketStatus.UNKNOWN
 
     constructor(
         AccessController: AccessControllerNodeType,
@@ -131,7 +131,7 @@ export class SharedProtectWebSocket {
     }
 
     private updateStatusForNodes = (Status: SocketStatus): Promise<void> => {
-        currentStatus = Status
+        this.currentStatus = Status
         return new Promise((resolve) => {
             Object.keys(this.callbacks).forEach((ID) => {
                 this.callbacks[ID].statusCallback(Status)
@@ -143,7 +143,10 @@ export class SharedProtectWebSocket {
 
     private connect(): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            const url = `${endpoints.protocol.webSocket}${this.accessControllerConfig.controllerIp}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
+            const wsPort =
+                this.accessControllerConfig.wsPort ||
+                endpoints[this.accessController.controllerType].wsport
+            const url = `${endpoints.protocol.webSocket}${this.accessControllerConfig.controllerIp}:${wsPort}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
 
             this.wsLogger.debug(`Connecting to ${url}...`)
 
@@ -161,19 +164,83 @@ export class SharedProtectWebSocket {
                     if (
                         this.reconnectAttempts > this.RECONNECT_ERROR_THRESHOLD
                     ) {
-                        this.updateStatusForNodes(
-                            SocketStatus.RECOVERING_CONNECTING_ERROR
-                        )
+                        this.updateStatusForNodes(SocketStatus.RECOVERY_ERROR)
                     } else {
                         this.updateStatusForNodes(
-                            SocketStatus.RECOVERING_CONNECTING
+                            SocketStatus.RECOVERING_CONNECTION
                         )
                     }
                     this.reconnect()
+                } else {
+                    this.reconnectAttempts = 0
+                    this.updateStatusForNodes(SocketStatus.CONNECTION_ERROR)
                 }
             })
 
-            this.ws?.on('open', () => {
+            await new Promise((resolve) => setTimeout(resolve, 2000))
+
+            if (this.ws?.readyState === WebSocket.OPEN) {
+                this.reconnectAttempts = 0
+                this.didOnceConnect = true
+                this.wsLogger.debug(`Connection to ${url} open`)
+
+                this.updateStatusForNodes(SocketStatus.CONNECTED)
+
+                this.ws?.on('message', (data) => {
+                    let objectToSend: any
+
+                    try {
+                        objectToSend = JSON.parse(data.toString())
+                    } catch (_) {
+                        objectToSend = ProtectApiUpdates.decodeUpdatePacket(
+                            this.wsLogger,
+                            data as Buffer
+                        )
+                    }
+
+                    Object.keys(this.callbacks).forEach((Node) => {
+                        const Interest = this.callbacks[Node]
+                        if (
+                            Interest.deviceId === objectToSend.payload.camera ||
+                            objectToSend.payload.camera === undefined
+                        ) {
+                            Interest.dataCallback(objectToSend)
+                        }
+                    })
+                })
+
+                this.ws?.on('close', (code, reason) => {
+                    this.wsLogger.debug(
+                        `Connection to ${url} closed. Code: ${code}, Reason: ${reason.toString()}`
+                    )
+                    switch (code) {
+                        case 1000:
+                            if (reason.toString() !== CLOSE_REASON) {
+                                /* This wasn't me, therefore the server requested we close. We better schedule a reconnect, it could be restarting */
+                                this.reconnect()
+                            }
+                            break
+
+                        case 1006:
+                            /* Well this was unexpected - We better schedule a reconnect */
+                            this.reconnect()
+                            break
+
+                        case 1012:
+                            /* The console is being restarted, lets schedule a reconnect */
+                            this.reconnect()
+                            break
+                    }
+                })
+
+                /* This should in theory provide recovery for both the console suddenly being disconnect or some other lost connection */
+                this.ws?.on('pong', () => this.heartbeatReceived())
+                this.scheduleHeartbeat()
+            }
+
+            resolve()
+
+            this.ws?.on('fake', () => {
                 // once connected - no reason to not try to reconnect after a drop (as at this point we know it should be available)
                 this.reconnectAttempts = 0
                 this.didOnceConnect = true
@@ -243,7 +310,7 @@ export class SharedProtectWebSocket {
 
     registerInterest(nodeId: string, interest: Interest): SocketStatus {
         this.callbacks[nodeId] = interest
-        return currentStatus
+        return this.currentStatus
     }
 
     updateLastUpdateId(newBootstrap: Bootstrap): void {
