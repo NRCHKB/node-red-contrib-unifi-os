@@ -52,7 +52,7 @@ module.exports = (RED: NodeAPI) => {
                     resolve(true)
                 } else {
                     self.status({
-                        fill: 'yellow',
+                        fill: 'grey',
                         shape: 'dot',
                         text: 'Initializing...',
                     })
@@ -410,11 +410,19 @@ module.exports = (RED: NodeAPI) => {
 
         const statusCallback = (Status: SocketStatus) => {
             switch (Status) {
+                case SocketStatus.DISCONNECTED:
+                    self.status({
+                        fill: 'grey',
+                        shape: 'ring',
+                        text: 'Disconnected',
+                    })
+                    break
+
                 case SocketStatus.CONNECTED:
                     self.status({
                         fill: 'green',
                         shape: 'dot',
-                        text: 'Ready/Connected',
+                        text: 'Connected',
                     })
                     break
 
@@ -422,7 +430,7 @@ module.exports = (RED: NodeAPI) => {
                     self.status({
                         fill: 'yellow',
                         shape: 'dot',
-                        text: 'Recovering...',
+                        text: 'Recovering connection...',
                     })
                     break
 
@@ -430,7 +438,7 @@ module.exports = (RED: NodeAPI) => {
                     self.status({
                         fill: 'red',
                         shape: 'dot',
-                        text: 'Recovery Failing!',
+                        text: 'Recovery failing!',
                     })
                     break
             }
@@ -446,7 +454,7 @@ module.exports = (RED: NodeAPI) => {
                 self.id,
                 I
             )
-        if (Status) {
+        if (Status !== undefined) {
             statusCallback(Status)
         }
 

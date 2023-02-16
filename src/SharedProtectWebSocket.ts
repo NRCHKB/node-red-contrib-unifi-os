@@ -9,13 +9,13 @@ import AccessControllerNodeType from './types/AccessControllerNodeType'
 import { Bootstrap } from './types/Bootstrap'
 
 export enum SocketStatus {
-    UNKNOWN = -1,
+    DISCONNECTED = -1,
     CONNECTED = 0,
     RECOVERING_CONNECTING = 1,
-    RECOVERING_CONNECTING_ERROR = 2,
+    RECOVERING_CONNECTING_ERROR = 3,
 }
 
-let currentStatus: SocketStatus = SocketStatus.UNKNOWN
+let currentStatus: SocketStatus = SocketStatus.DISCONNECTED
 
 const CLOSE_REASON = 'SELF_CLOSE'
 export type WSDataCallback = (data: any) => void
@@ -37,9 +37,11 @@ export class SharedProtectWebSocket {
     private heartbeatTimer?: NodeJS.Timeout
     private reconnectTimer?: NodeJS.Timeout
     private didOnceConnect = false
-    private RECONNECT_TIMEOUT = 90000
+    private RECONNECT_TIMEOUT = 30000
     private HEARTBEAT_INTERVAL = 15000
+    private RECONNECT_ERROR_THRESHOLD = 3
     private pongReceived = false // for some reason we get 2 pongs to 1 ping - this is to clear up confusion on debug
+    private reconnectAttempts = 0
 
     constructor(
         AccessController: AccessControllerNodeType,
@@ -120,8 +122,8 @@ export class SharedProtectWebSocket {
             `Scheduling reconnect: ${this.RECONNECT_TIMEOUT}...`
         )
         this.reconnectTimer = setTimeout(() => {
-            this.updateStatusForNodes(SocketStatus.RECOVERING_CONNECTING)
             this.disconnect()
+            this.reconnectAttempts++
             this.connect().catch((Error) => {
                 console.error(Error)
             })
@@ -156,15 +158,24 @@ export class SharedProtectWebSocket {
                 this.wsLogger.error(`${error}`)
                 reject(error)
                 if (this.didOnceConnect) {
-                    this.updateStatusForNodes(
-                        SocketStatus.RECOVERING_CONNECTING_ERROR
-                    )
+                    if (
+                        this.reconnectAttempts > this.RECONNECT_ERROR_THRESHOLD
+                    ) {
+                        this.updateStatusForNodes(
+                            SocketStatus.RECOVERING_CONNECTING_ERROR
+                        )
+                    } else {
+                        this.updateStatusForNodes(
+                            SocketStatus.RECOVERING_CONNECTING
+                        )
+                    }
                     this.reconnect()
                 }
             })
 
             this.ws?.on('open', () => {
                 // once connected - no reason to not try to reconnect after a drop (as at this point we know it should be available)
+                this.reconnectAttempts = 0
                 this.didOnceConnect = true
                 this.wsLogger.debug(`Connection to ${url} open`)
 
