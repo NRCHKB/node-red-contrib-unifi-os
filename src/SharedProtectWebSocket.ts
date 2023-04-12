@@ -8,11 +8,22 @@ import AccessControllerNodeConfigType from './types/AccessControllerNodeConfigTy
 import AccessControllerNodeType from './types/AccessControllerNodeType'
 import { Bootstrap } from './types/Bootstrap'
 
+export enum SocketStatus {
+    UNKNOWN = -1,
+    CONNECTED = 0,
+    RECOVERING_CONNECTION = 1,
+    RECOVERY_ERROR = 3,
+    CONNECTION_ERROR = 4,
+}
+
 const CLOSE_REASON = 'SELF_CLOSE'
 export type WSDataCallback = (data: any) => void
+export type WSStatusCallback = (status: SocketStatus) => void
+
 export interface Interest {
     deviceId: string
-    callback: WSDataCallback
+    dataCallback: WSDataCallback
+    statusCallback: WSStatusCallback
 }
 
 export class SharedProtectWebSocket {
@@ -25,9 +36,12 @@ export class SharedProtectWebSocket {
     private heartbeatTimer?: NodeJS.Timeout
     private reconnectTimer?: NodeJS.Timeout
     private didOnceConnect = false
-    private RECONNECT_TIMEOUT = 90000
+    private RECONNECT_TIMEOUT = 30000
     private HEARTBEAT_INTERVAL = 15000
+    private RECONNECT_ERROR_THRESHOLD = 3
     private pongReceived = false // for some reason we get 2 pongs to 1 ping - this is to clear up confusion on debug
+    private reconnectAttempts = 0
+    private currentStatus: SocketStatus = SocketStatus.UNKNOWN
 
     constructor(
         AccessController: AccessControllerNodeType,
@@ -40,13 +54,15 @@ export class SharedProtectWebSocket {
         this.accessController = AccessController
 
         if (this.accessControllerConfig.protectSocketHeartbeatInterval) {
-            this.HEARTBEAT_INTERVAL =
+            this.HEARTBEAT_INTERVAL = parseInt(
                 this.accessControllerConfig.protectSocketHeartbeatInterval
+            )
         }
 
         if (this.accessControllerConfig.protectSocketReconnectTimeout) {
-            this.RECONNECT_TIMEOUT =
+            this.RECONNECT_TIMEOUT = parseInt(
                 this.accessControllerConfig.protectSocketReconnectTimeout
+            )
         }
 
         this.wsLogger = logger('UniFi', 'SharedProtectWebSocket')
@@ -109,15 +125,30 @@ export class SharedProtectWebSocket {
         )
         this.reconnectTimer = setTimeout(() => {
             this.disconnect()
+            this.reconnectAttempts++
             this.connect().catch((Error) => {
                 console.error(Error)
             })
         }, this.RECONNECT_TIMEOUT)
     }
 
+    private updateStatusForNodes = (Status: SocketStatus): Promise<void> => {
+        this.currentStatus = Status
+        return new Promise((resolve) => {
+            Object.keys(this.callbacks).forEach((ID) => {
+                this.callbacks[ID].statusCallback(Status)
+            })
+
+            resolve()
+        })
+    }
+
     private connect(): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            const url = `${endpoints.protocol.webSocket}${this.accessControllerConfig.controllerIp}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
+            const wsPort =
+                this.accessControllerConfig.wsPort ||
+                endpoints[this.accessController.controllerType].wsport
+            const url = `${endpoints.protocol.webSocket}${this.accessControllerConfig.controllerIp}:${wsPort}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
 
             this.wsLogger.debug(`Connecting to ${url}...`)
 
@@ -132,14 +163,31 @@ export class SharedProtectWebSocket {
                 this.wsLogger.error(`${error}`)
                 reject(error)
                 if (this.didOnceConnect) {
+                    if (
+                        this.reconnectAttempts > this.RECONNECT_ERROR_THRESHOLD
+                    ) {
+                        this.updateStatusForNodes(SocketStatus.RECOVERY_ERROR)
+                    } else {
+                        this.updateStatusForNodes(
+                            SocketStatus.RECOVERING_CONNECTION
+                        )
+                    }
                     this.reconnect()
+                } else {
+                    this.reconnectAttempts = 0
+                    this.updateStatusForNodes(SocketStatus.CONNECTION_ERROR)
                 }
             })
 
-            this.ws?.on('open', () => {
-                // once connected - no reason to not try to reconnect after a drop (as at this point we know it should be available)
+            await new Promise((resolve) => setTimeout(resolve, 2000))
+
+            if (this.ws?.readyState === WebSocket.OPEN) {
+                this.reconnectAttempts = 0
                 this.didOnceConnect = true
                 this.wsLogger.debug(`Connection to ${url} open`)
+
+                this.updateStatusForNodes(SocketStatus.CONNECTED)
+
                 this.ws?.on('message', (data) => {
                     let objectToSend: any
 
@@ -158,7 +206,7 @@ export class SharedProtectWebSocket {
                             Interest.deviceId === objectToSend.payload.camera ||
                             objectToSend.payload.camera === undefined
                         ) {
-                            Interest.callback(objectToSend)
+                            Interest.dataCallback(objectToSend)
                         }
                     })
                 })
@@ -190,9 +238,9 @@ export class SharedProtectWebSocket {
                 /* This should in theory provide recovery for both the console suddenly being disconnect or some other lost connection */
                 this.ws?.on('pong', () => this.heartbeatReceived())
                 this.scheduleHeartbeat()
+            }
 
-                resolve()
-            })
+            resolve()
         })
     }
 
@@ -200,8 +248,9 @@ export class SharedProtectWebSocket {
         delete this.callbacks[nodeId]
     }
 
-    registerInterest(nodeId: string, interest: Interest): void {
+    registerInterest(nodeId: string, interest: Interest): SocketStatus {
         this.callbacks[nodeId] = interest
+        return this.currentStatus
     }
 
     updateLastUpdateId(newBootstrap: Bootstrap): void {

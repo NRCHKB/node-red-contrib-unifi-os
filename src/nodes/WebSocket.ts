@@ -56,10 +56,10 @@ module.exports = (RED: NodeAPI) => {
 
     const setupWebsocket = async (self: WebSocketNodeType): Promise<void> => {
         const connectWebSocket = async () => {
-            const url =
-                endpoints.protocol.webSocket +
-                self.accessControllerNode.config.controllerIp +
-                self.endpoint
+            const wsPort =
+                self.accessControllerNode.config.wsPort ||
+                endpoints[self.accessControllerNode.controllerType].wsport
+            const url = `${endpoints.protocol.webSocket}${self.accessControllerNode.config.controllerIp}:${wsPort}${self.endpoint}`
 
             const id = crypto.randomBytes(16).toString('hex')
             const wsLogger = logger('UniFi', `WebSocket:${id}`, self.name, self)

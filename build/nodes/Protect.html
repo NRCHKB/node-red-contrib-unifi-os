@@ -100,12 +100,18 @@
             return this.name ? 'node_label_italic' : ''
         },
         oneditsave: function () {
-            const Element = $('#el-node-input-delayedSnapshotTime')
-            this.delayedSnapshotTime = parseInt(Element.val())
-            $('#node-input-accessControllerNodeId').off('change')
-
             const Split = $('#node-input-fanned').prop('checked')
-            const Count = $('#node-input-eventIds option:selected').length
+            const Items = $('#el-node-input-eventIds').treeList('data')
+            let Count = 0
+
+            this.eventIds = []
+
+            Items.forEach((I) => {
+                if (I.treeList.checkbox.prop('checked')) {
+                    Count++
+                    this.eventIds.push(I.id)
+                }
+            })
 
             if (Split) {
                 this.outputs = Count + 1 // +1 for delayed snapshots - which will always be the last output
@@ -114,28 +120,43 @@
             }
         },
         oneditprepare: function () {
+            const self = this
             selectedCamera = undefined
-            $('#el-node-input-delayedSnapshotTime').val(
-                this.delayedSnapshotTime
-            )
-            if (this.cameraId) {
-                selectedCamera = this.cameraId
-            }
-            Events.forEach((E) => {
-                $('#node-input-eventIds').append(
-                    `<option value="${E.id}">${E.display}</option>`
-                )
-
-                $('#node-input-eventIds').val(this.eventIds)
-            })
 
             setTimeout(() => {
+                if (self.cameraId) {
+                    selectedCamera = self.cameraId
+                }
+
+                if (self.accessControllerNodeId) {
+                    controllerSelected()
+                }
+
+                showHideSnapshotOptions()
+
                 $('#node-input-accessControllerNodeId').change(
                     controllerSelected
                 )
-                controllerSelected()
-                showHideSnapshotOptions()
-            }, 100)
+                $('#node-input-snapshotMode').change(showHideSnapshotOptions)
+
+                const EventList = []
+                Events.forEach((E) => {
+                    EventList.push({
+                        label: E.display,
+                        id: E.id,
+                        checkbox: true,
+                    })
+                })
+
+                $('#el-node-input-eventIds').treeList({ data: EventList })
+                const Items = $('#el-node-input-eventIds').treeList('data')
+                self.eventIds.forEach((E) => {
+                    Items.find((I) => I.id === E).treeList.checkbox.prop(
+                        'checked',
+                        true
+                    )
+                })
+            }, 10)
         },
     })
 
@@ -200,8 +221,8 @@
         </select>
     </div>
     <div class="form-row">
-        <label for="node-input-eventIds"><i class="fa fa-list"></i> Events</label>
-        <select id="node-input-eventIds" multiple style="height:170px">
+        <label for="el-node-input-eventIds" style="vertical-align: top;"><i class="fa fa-list"></i> Events</label>
+            <div id="el-node-input-eventIds" style="height: 220px; width: 70%; display: inline-block; vertical-align: top;"></div>
         </select>
     </div>
     <div class="form-row">
@@ -210,7 +231,7 @@
     </div>
     <div class="form-row">
         <label for="node-input-snapshotMode"><i class="fa fa-image"></i> Snapshots</label>
-        <select id="node-input-snapshotMode" onchange="showHideSnapshotOptions()">
+        <select id="node-input-snapshotMode">
             <option value="None" selected>None</option>
             <option value="Initial">Initial Only (if supported)</option>
             <option value="InitialDelayed">Initial And Delayed (if supported)</option>
@@ -226,8 +247,8 @@
         <input type="number" id="node-input-snapshotH" placeholder="360" />
     </div>
     <div class="form-row unifi-snapshot">
-        <label for="el-node-input-delayedSnapshotTime"><i class="fa fa-clock-o"></i> Delay Time</label>
-        <input type="number" id="el-node-input-delayedSnapshotTime" placeholder="2000" />
+        <label for="node-input-delayedSnapshotTime"><i class="fa fa-clock-o"></i> Delay Time</label>
+        <input type="number" id="node-input-delayedSnapshotTime" placeholder="2000" />
     </div>
     <div class="form-tips unifi-snapshot" id="node-tip">
         <span style="color:orange; font-weight:bold;">Warning:</span> The larger the snapshot size, the more time needed to deliver the event to your flow. Not all event types support a snapshot, therefore will not be included. 

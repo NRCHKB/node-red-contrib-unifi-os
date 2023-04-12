@@ -4,7 +4,7 @@ import { NodeAPI } from 'node-red'
 import util from 'util'
 
 import EventModels, { ThumbnailSupport } from '../EventModels'
-import { Interest } from '../SharedProtectWebSocket'
+import { Interest, SocketStatus } from '../SharedProtectWebSocket'
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
 import ProtectNodeConfigType from '../types/ProtectNodeConfigType'
 import ProtectNodeType from '../types/ProtectNodeType'
@@ -52,7 +52,7 @@ module.exports = (RED: NodeAPI) => {
                     resolve(true)
                 } else {
                     self.status({
-                        fill: 'yellow',
+                        fill: 'grey',
                         shape: 'dot',
                         text: 'Initializing...',
                     })
@@ -88,7 +88,7 @@ module.exports = (RED: NodeAPI) => {
             self.status({
                 fill: 'grey',
                 shape: 'dot',
-                text: 'Sending',
+                text: 'Sending...',
             })
 
             self.accessControllerNode
@@ -163,7 +163,7 @@ module.exports = (RED: NodeAPI) => {
                     .catch((e) => {
                         console.error(e)
                     })
-            }, self.config.delayedSnapshotTime)
+            }, parseInt(self.config.delayedSnapshotTime))
         }
 
         // Register our interest in Protect Updates.
@@ -408,11 +408,63 @@ module.exports = (RED: NodeAPI) => {
             }
         }
 
+        const statusCallback = (Status: SocketStatus) => {
+            switch (Status) {
+                case SocketStatus.UNKNOWN:
+                    self.status({
+                        fill: 'grey',
+                        shape: 'dot',
+                        text: 'Unknown',
+                    })
+                    break
+
+                case SocketStatus.CONNECTION_ERROR:
+                    self.status({
+                        fill: 'red',
+                        shape: 'dot',
+                        text: 'Connection error',
+                    })
+                    break
+
+                case SocketStatus.CONNECTED:
+                    self.status({
+                        fill: 'green',
+                        shape: 'dot',
+                        text: 'Connected',
+                    })
+                    break
+
+                case SocketStatus.RECOVERING_CONNECTION:
+                    self.status({
+                        fill: 'yellow',
+                        shape: 'dot',
+                        text: 'Recovering connection...',
+                    })
+                    break
+
+                case SocketStatus.RECOVERY_ERROR:
+                    self.status({
+                        fill: 'red',
+                        shape: 'dot',
+                        text: 'Recovery failing',
+                    })
+                    break
+            }
+        }
+
         const I: Interest = {
             deviceId: this.config.cameraId,
-            callback: handleUpdate,
+            dataCallback: handleUpdate,
+            statusCallback: statusCallback,
         }
-        self.accessControllerNode.protectSharedWS?.registerInterest(self.id, I)
+        const Status =
+            self.accessControllerNode.protectSharedWS?.registerInterest(
+                self.id,
+                I
+            )
+        if (Status !== undefined) {
+            statusCallback(Status)
+        }
 
         log.debug('Initialized')
     }

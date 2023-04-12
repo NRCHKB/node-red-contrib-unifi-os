@@ -37,5 +37,4 @@ type AccessControllerNodeType = Node & {
     protectSharedWS?: SharedProtectWebSocket
 }
 
-
 export default AccessControllerNodeType

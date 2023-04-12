@@ -14,23 +14,23 @@
                 value: '',
                 required: false,
             },
+            wsPort: {
+                value: '',
+                required: false,
+            },
             controllerType: {
                 value: 'UniFiOSConsole',
                 required: true,
             },
             protectSocketReconnectTimeout: {
-                value: 0,
-                validate: RED.validators.number(),
-                required: true,
+                value: '',
+                required: false,
             },
             protectSocketHeartbeatInterval: {
-                value: 0,
-                validate: RED.validators.number(),
-                required: true,
+                value: '',
+                required: false,
             },
         },
-        oneditprepare: restoreValue,
-        oneditsave: storeAsNumber,
         credentials: {
             username: { type: 'text' },
             password: { type: 'password' },
@@ -42,32 +42,6 @@
             return this.name ? 'node_label_italic' : ''
         },
     })
-
-    function storeAsNumber() {
-        const el_protectSocketReconnectTimeout = $(
-            '#el-node-config-input-protectSocketReconnectTimeout'
-        )
-        this.protectSocketReconnectTimeout = parseInt(
-            el_protectSocketReconnectTimeout.val()
-        )
-
-        const el_protectSocketHeartbeatInterval = $(
-            '#el-node-config-input-protectSocketHeartbeatInterval'
-        )
-        this.protectSocketHeartbeatInterval = parseInt(
-            el_protectSocketHeartbeatInterval.val()
-        )
-    }
-    function restoreValue() {
-        const reconnectValue = this.protectSocketReconnectTimeout || 0
-        const heartBeatValue = this.protectSocketHeartbeatInterval || 0
-        $('#el-node-config-input-protectSocketReconnectTimeout').val(
-            reconnectValue
-        )
-        $('#el-node-config-input-protectSocketHeartbeatInterval').val(
-            heartBeatValue
-        )
-    }
 </script>
 
 <!-- prettier-ignore -->
@@ -82,8 +56,12 @@
         <input type="text" id="node-config-input-controllerIp" class="unifi-grow" placeholder="Controller IP"/>
     </div>
     <div class="form-row unifi-flex">
-        <label for="node-config-input-controllerPort" class="unifi-width-50"><i class="fa fa-globe"></i> Port</label>
-        <input type="text" id="node-config-input-controllerPort"  class="unifi-grow" placeholder="8443"/>
+        <label for="node-config-input-controllerPort" class="unifi-width-50"><i class="fa fa-globe"></i> Port (HTTP)</label>
+        <input type="text" id="node-config-input-controllerPort"  class="unifi-grow" placeholder="-- Use Type Default --"/>
+    </div>
+    <div class="form-row unifi-flex">
+        <label for="node-config-input-wsPort" class="unifi-width-50"><i class="fa fa-globe"></i> Port (WS)</label>
+        <input type="text" id="node-config-input-wsPort"  class="unifi-grow" placeholder="-- Use Type Default --"/>
     </div>
     <div class="form-row unifi-flex">
         <label for="node-config-input-controllerType" class="unifi-width-50"><i class="fa fa-server"></i> Type</label>
@@ -96,14 +74,14 @@
             </option>
         </select>
     </div>
-    <div class="unifi-text-divider">Protect Shared Socket timeouts (ms, 0 - Use defaults)</div>
+    <div class="unifi-text-divider">Protect Shared Socket timeouts</div>
     <div class="form-row unifi-flex">
-        <label for="el-node-config-input-protectSocketReconnectTimeout" class="unifi-width-50"><i class="fa fa-clock-o"></i> Reconnect</label>
-        <input type="number" id="el-node-config-input-protectSocketReconnectTimeout" class="unifi-grow" placeholder="90000"/>
+        <label for="node-config-input-protectSocketReconnectTimeout" class="unifi-width-50"><i class="fa fa-clock-o"></i> Reconnect</label>
+        <input type="number" id="node-config-input-protectSocketReconnectTimeout" class="unifi-grow" placeholder="-- Use Default --"/>
     </div>
     <div class="form-row unifi-flex">
-        <label for="el-node-config-input-protectSocketHeartbeatInterval" class="unifi-width-50"><i class="fa fa-clock-o"></i> Heartbeat</label>
-        <input type="number" id="el-node-config-input-protectSocketHeartbeatInterval" class="unifi-grow" placeholder="15000"/>
+        <label for="node-config-input-protectSocketHeartbeatInterval" class="unifi-width-50"><i class="fa fa-clock-o"></i> Heartbeat</label>
+        <input type="number" id="node-config-input-protectSocketHeartbeatInterval" class="unifi-grow" placeholder="-- Use Default --"/>
     </div>
     <div class="unifi-text-divider">Credentials</div>
     <div class="form-row unifi-flex">
