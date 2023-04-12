@@ -8,8 +8,8 @@ type AccessControllerNodeConfigType = NodeDef & {
     controllerPort?: string
     wsPort?: string
     controllerType?: ControllerType
-    protectSocketReconnectTimeout?: number
-    protectSocketHeartbeatInterval?: number
+    protectSocketReconnectTimeout?: string
+    protectSocketHeartbeatInterval?: string
 }
 
 export default AccessControllerNodeConfigType

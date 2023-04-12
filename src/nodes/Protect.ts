@@ -163,7 +163,7 @@ module.exports = (RED: NodeAPI) => {
                     .catch((e) => {
                         console.error(e)
                     })
-            }, self.config.delayedSnapshotTime)
+            }, parseInt(self.config.delayedSnapshotTime))
         }
 
         // Register our interest in Protect Updates.
@@ -413,7 +413,7 @@ module.exports = (RED: NodeAPI) => {
                 case SocketStatus.UNKNOWN:
                     self.status({
                         fill: 'grey',
-                        shape: 'ring',
+                        shape: 'dot',
                         text: 'Unknown',
                     })
                     break

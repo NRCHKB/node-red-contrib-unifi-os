@@ -7,7 +7,7 @@ type ProtectNodeConfigType = NodeDef & {
     snapshotMode: string
     snapshotW: string
     snapshotH: string
-    delayedSnapshotTime: number
+    delayedSnapshotTime: string
     fanned: boolean
     outputs: number
 }

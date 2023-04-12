@@ -54,13 +54,15 @@ export class SharedProtectWebSocket {
         this.accessController = AccessController
 
         if (this.accessControllerConfig.protectSocketHeartbeatInterval) {
-            this.HEARTBEAT_INTERVAL =
+            this.HEARTBEAT_INTERVAL = parseInt(
                 this.accessControllerConfig.protectSocketHeartbeatInterval
+            )
         }
 
         if (this.accessControllerConfig.protectSocketReconnectTimeout) {
-            this.RECONNECT_TIMEOUT =
+            this.RECONNECT_TIMEOUT = parseInt(
                 this.accessControllerConfig.protectSocketReconnectTimeout
+            )
         }
 
         this.wsLogger = logger('UniFi', 'SharedProtectWebSocket')
@@ -239,68 +241,6 @@ export class SharedProtectWebSocket {
             }
 
             resolve()
-
-            this.ws?.on('fake', () => {
-                // once connected - no reason to not try to reconnect after a drop (as at this point we know it should be available)
-                this.reconnectAttempts = 0
-                this.didOnceConnect = true
-                this.wsLogger.debug(`Connection to ${url} open`)
-
-                this.updateStatusForNodes(SocketStatus.CONNECTED)
-
-                this.ws?.on('message', (data) => {
-                    let objectToSend: any
-
-                    try {
-                        objectToSend = JSON.parse(data.toString())
-                    } catch (_) {
-                        objectToSend = ProtectApiUpdates.decodeUpdatePacket(
-                            this.wsLogger,
-                            data as Buffer
-                        )
-                    }
-
-                    Object.keys(this.callbacks).forEach((Node) => {
-                        const Interest = this.callbacks[Node]
-                        if (
-                            Interest.deviceId === objectToSend.payload.camera ||
-                            objectToSend.payload.camera === undefined
-                        ) {
-                            Interest.dataCallback(objectToSend)
-                        }
-                    })
-                })
-
-                this.ws?.on('close', (code, reason) => {
-                    this.wsLogger.debug(
-                        `Connection to ${url} closed. Code: ${code}, Reason: ${reason.toString()}`
-                    )
-                    switch (code) {
-                        case 1000:
-                            if (reason.toString() !== CLOSE_REASON) {
-                                /* This wasn't me, therefore the server requested we close. We better schedule a reconnect, it could be restarting */
-                                this.reconnect()
-                            }
-                            break
-
-                        case 1006:
-                            /* Well this was unexpected - We better schedule a reconnect */
-                            this.reconnect()
-                            break
-
-                        case 1012:
-                            /* The console is being restarted, lets schedule a reconnect */
-                            this.reconnect()
-                            break
-                    }
-                })
-
-                /* This should in theory provide recovery for both the console suddenly being disconnect or some other lost connection */
-                this.ws?.on('pong', () => this.heartbeatReceived())
-                this.scheduleHeartbeat()
-
-                resolve()
-            })
         })
     }
 
