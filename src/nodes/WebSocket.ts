@@ -56,10 +56,10 @@ module.exports = (RED: NodeAPI) => {
 
     const setupWebsocket = async (self: WebSocketNodeType): Promise<void> => {
         const connectWebSocket = async () => {
-            const url =
-                endpoints.protocol.webSocket +
-                self.accessControllerNode.config.controllerIp +
-                self.endpoint
+            const wsPort =
+                self.accessControllerNode.config.wsPort ||
+                endpoints[self.accessControllerNode.controllerType].wsport
+            const url = `${endpoints.protocol.webSocket}${self.accessControllerNode.config.controllerIp}:${wsPort}${self.endpoint}`
 
             const id = crypto.randomBytes(16).toString('hex')
             const wsLogger = logger('UniFi', `WebSocket:${id}`, self.name, self)
@@ -297,23 +297,27 @@ module.exports = (RED: NodeAPI) => {
             }
         })
 
-        self.on('close', async (removed: boolean, done: () => void) => {
-            self.status({
-                fill: 'grey',
-                shape: 'dot',
-                text: 'Disconnecting',
-            })
+        self.on('close', (removed: boolean, done: () => void) => {
+            const cleanup = async () => {
+                self.status({
+                    fill: 'grey',
+                    shape: 'dot',
+                    text: 'Disconnecting',
+                })
 
-            log.debug(
-                `Disconnecting - node ${removed ? 'removed' : 'restarted'}`
-            )
+                log.debug(
+                    `Disconnecting - node ${removed ? 'removed' : 'restarted'}`
+                )
 
-            await stopWebsocket(
-                self,
-                log,
-                `${removed ? 'removed' : 'restarted'}`,
-                done
-            )
+                await stopWebsocket(
+                    self,
+                    log,
+                    `${removed ? 'removed' : 'restarted'}`,
+                    done
+                )
+            }
+
+            cleanup()
         })
 
         if (self.endpoint?.trim().length && !!self.ws) {
