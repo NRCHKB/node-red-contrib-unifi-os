@@ -166,6 +166,14 @@ module.exports = (RED: NodeAPI) => {
             }, parseInt(self.config.delayedSnapshotTime))
         }
 
+        // Awaiter (Node RED 3.1 evaluateJSONataExpression )
+        let _AwaiterResolver: (value?: unknown) => void
+        const Awaiter = () => {
+            return new Promise((Resolve) => {
+                _AwaiterResolver = Resolve
+            })
+        }
+
         // Register our interest in Protect Updates.
         const handleUpdate = async (data: any) => {
             /*  This is to mirror the output pin assigmnets
@@ -337,15 +345,24 @@ module.exports = (RED: NodeAPI) => {
                     }
                 }
 
+                let Waiter
+
                 if (identifiedEvent.metadata.valueExpression) {
+                    Waiter = Awaiter()
                     const EXP = RED.util.prepareJSONataExpression(
                         identifiedEvent.metadata.valueExpression,
                         self
                     )
-                    UserPL.payload.value = RED.util.evaluateJSONataExpression(
+                    RED.util.evaluateJSONataExpression(
                         EXP,
-                        data
+                        data,
+                        (_err, res) => {
+                            UserPL.payload.value = res
+                            _AwaiterResolver()
+                        }
                     )
+
+                    await Promise.all([Waiter])
                 }
 
                 if (self.config.snapshotMode === 'None') {
