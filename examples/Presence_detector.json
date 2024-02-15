@@ -1,0 +1,97 @@
+[
+    {
+        "id": "8bbbe5fab5a66a42",
+        "type": "comment",
+        "z": "a70dcb4b7f48c7cd",
+        "name": "Unifi presence detector - README",
+        "info": "The \"Go\" node sends a payload to the Unifi node \nevery 20 seconds.\nIf the device is in idle mode for more than\na certain time (default 5 minutes),\nthe device is considered offline.",
+        "x": 190,
+        "y": 250,
+        "wires": []
+    },
+    {
+        "id": "5ca304d82441ea88",
+        "type": "function",
+        "z": "a70dcb4b7f48c7cd",
+        "name": "Massimo's iPhone",
+        "func": "\n// ### SEARCH TERMS AND TIME ###########################\n// *Both* FRIENDLY NAME and HOSTNAME must be set\nlet sCercaNome = \"iPhone di Massimo\"; // SEARCH FRIENDLY NAME\nlet sCercaHostName = \"iPhonediMassimo\"; // SEARCH HOSTNAME\nlet idleTimeMassimo = 5; // IN MINUTES. AFTER THIS TIME, THE DEVICE IS CONSIDERED NOT CONNECTED ANYMORE\n// #####################################################\n\n// RETURN PAYLOAD: #####################################\n// If the device is connected to the UDM LAN/WIFI, returns TRUE and the found device { payload: true, trovato: sFound }\n// If the device isn't connected anymore,returns { payload: false }\n// #####################################################\n\nif (msg.payload === undefined) return\n\nif (!msg.payload.hasOwnProperty('data') || msg.payload.data === undefined) {\n  node.status({ fill: \"red\", shape: \"dot\", text: \"Error:  data property not present\" });\n  return\n}\nif (msg.payload.data.length === 0) {\n  node.status({ fill: \"red\", shape: \"dot\", text: \"Error: data lenght is zero\" });\n  return\n}\n\ntry {\n  const oElencoUnifi = msg.payload.data;\n  let oFoundUnifi = oElencoUnifi.filter(x => x.name === sCercaNome || x.hostname === sCercaHostName);\n  if (oFoundUnifi === undefined || oFoundUnifi.length === 0) {\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Device not found: \" + sCercaNome });\n    oElencoUnifi.length = 0;\n    oFoundUnifi.length = 0;\n    return { payload: false }\n  }\n  const sFound = oFoundUnifi[0]\n  if (sFound === undefined) return\n  if ((sFound.idletime / 60) >= idleTimeMassimo) {\n    node.status({ fill: \"red\", shape: \"dot\", text: sFound.name + \" disconnected since: \" + Math.round(sFound.idletime / 60) + \" minutes.\" });\n    node.send({ payload: false });\n  } else {\n    node.status({ fill: \"green\", shape: \"dot\", text: sFound.name + \" connected.\" });\n    node.send({ payload: true, trovato: sFound })\n  }\n} catch (error) {\n  node.status({ fill: \"red\", shape: \"ring\", text:\"Ops.. \" + error.message });\n};\n\n",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 440,
+        "y": 300,
+        "wires": [
+            [
+                "3674e141ad14b23f"
+            ]
+        ]
+    },
+    {
+        "id": "7a8190bf93c093e3",
+        "type": "unifi-request",
+        "z": "a70dcb4b7f48c7cd",
+        "name": "Read Device list",
+        "accessControllerNodeId": "",
+        "endpoint": "/proxy/network/api/s/default/stat/sta/",
+        "method": "GET",
+        "data": "",
+        "dataType": "json",
+        "responseType": "json",
+        "x": 245,
+        "y": 300,
+        "wires": [
+            [
+                "5ca304d82441ea88"
+            ]
+        ]
+    },
+    {
+        "id": "1f5244a6053a3796",
+        "type": "inject",
+        "z": "a70dcb4b7f48c7cd",
+        "name": "Go",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "10",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "20",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 100,
+        "y": 300,
+        "wires": [
+            [
+                "7a8190bf93c093e3"
+            ]
+        ]
+    },
+    {
+        "id": "3674e141ad14b23f",
+        "type": "debug",
+        "z": "a70dcb4b7f48c7cd",
+        "name": "debug 10",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 615,
+        "y": 300,
+        "wires": []
+    }
+]
