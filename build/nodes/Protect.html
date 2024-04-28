@@ -62,14 +62,14 @@
                 // List Events
                 const Events = [
                     { value: 'AudioDetection', label: 'Audio Detection' },
-                    { value: 'Animal', label: 'Animal Detected' },
+                    { value: 'Animal', label: 'Animal Detected [Multiple]' },
                     { value: 'DoorBell', label: 'Door Bell Ring' },
-                    { value: 'LicensePlate', label: 'License Plate' },
-                    { value: 'MotionDetection', label: 'Motion Detection' },
-                    { value: 'MotionEvent', label: 'Motion Event' },
+                    { value: 'LicensePlate', label: 'License Plate [Multiple]' },
+                    { value: 'MotionDetection', label: 'Motion Detection ' },
+                    { value: 'MotionEvent', label: 'Motion Event [Multiple]' },
                     { value: 'Package', label: 'Package Detected' },
-                    { value: 'Person', label: 'Person Detected' },
-                    { value: 'Vehicle', label: 'Vehicle Detected' },
+                    { value: 'Person', label: 'Person Detected [Multiple]' },
+                    { value: 'Vehicle', label: 'Vehicle Detected [Multiple]' },
                 ]
                 $('#node-input-eventIds').typedInput({
                     type: 'events',
@@ -160,6 +160,10 @@
 
     <div class="form-tips">
         <span style="font-weight:bold;">Note:</span> Enbaling <code>Debug</code> will output raw/unfiltered Protect events, whether or not cameras and / or events are selected.
+    </div>
+    <br />
+    <div class="form-tips">
+        <span style="font-weight:bold;">[Multiple]:</span> These events consist of 2 events, the 1st being when the event started, the 2nd when it has ended, the payloads will advise also via a <code>expectEndEvent</code> property
     </div>
     <br />
     <div class="form-tips" id="node-warning">
