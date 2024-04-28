@@ -1,4 +1,4 @@
-name: BETA Publish
+name: Publish BETA
 
 on:
   release:
