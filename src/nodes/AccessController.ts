@@ -16,6 +16,7 @@ const {
 } = require('abortcontroller-polyfill/dist/cjs-ponyfill')
 
 const bootstrapURI = '/proxy/protect/api/bootstrap'
+let hasProtect = true /* Lest assume at first */
 
 const urlBuilder = (self: AccessControllerNodeType, endpoint?: string) => {
     return (
@@ -35,6 +36,7 @@ module.exports = (RED: NodeAPI) => {
     ) {
         const self = this
         const log = logger('UniFi', 'AccessController', self.name, self)
+        
 
         RED.nodes.createNode(self, config)
         self.config = config
@@ -80,7 +82,9 @@ module.exports = (RED: NodeAPI) => {
 
         // The Boostrap request
         const getBootstrap = async (init?: boolean) => {
-            self.request(self.id, bootstrapURI, 'GET', undefined, 'json')
+
+            if(hasProtect){
+                self.request(self.id, bootstrapURI, 'GET', undefined, 'json')
                 .then((res: UnifiResponse) => {
                     self.bootstrapObject = res as Bootstrap
 
@@ -99,10 +103,14 @@ module.exports = (RED: NodeAPI) => {
                     }
                 })
                 .catch((error) => {
+                    hasProtect = false
                     log.debug(
                         `Received error when obtaining bootstrap: ${error}, assuming this is to be expected, i.e no protect instance.`
                     )
                 })
+            }
+
+           
         }
 
         const refresh = (init?: boolean) => {

@@ -6,25 +6,36 @@ export enum ThumbnailSupport {
     NONE = 4,
 }
 
+export enum CameraIDLocation {
+    PAYLOAD_CAMERA = 0,
+    ACTION_ID = 1,
+    NONE = 2,
+    ACTION_RECORDID = 3,
+}
+
 export type Metadata =
     | {
           label: string
           id: string
-          hasDuration: false
+          hasMultiple: boolean
           valueExpression?: string
           thumbnailSupport: ThumbnailSupport
+          idLocation: CameraIDLocation
+          sendOnEnd?: boolean
       }
     | {
-          label: string
-          id: string
-          hasDuration: true
-          valueExpression?: never
-          thumbnailSupport: ThumbnailSupport
+          label?: string
+          valueExpression?: string
+          hasMultiple?: never
+          id?: never
+          thumbnailSupport?: never
+          sendOnEnd?: never
       }
 
 export type UnifiEventModel = {
     shapeProfile: Record<string, unknown>
-    metadata: Metadata
+    startMetadata: Metadata
+    endMetadata?: Metadata 
 }
 
 const EventModels: UnifiEventModel[] = [
@@ -38,28 +49,17 @@ const EventModels: UnifiEventModel[] = [
                 type: 'smartAudioDetect',
             },
         },
-        metadata: {
-            label: 'Alarm',
-            hasDuration: false,
-            id: 'Alarm',
+        startMetadata: {
+            label: 'Audio Detection',
+            hasMultiple: true,
+            sendOnEnd: true,
+            id: 'AudioDetection',
             thumbnailSupport: ThumbnailSupport.SINGLE_DELAYED,
+            idLocation: CameraIDLocation.ACTION_RECORDID,
+            
         },
-    },
-    {
-        shapeProfile: {
-            action: {
-                modelKey: 'camera',
-            },
-            payload: {
-                isMotionDetected: true,
-            },
-        },
-        metadata: {
-            label: 'Motion Detection',
-            hasDuration: false,
-            id: 'MotionDetection',
-            valueExpression: 'payload.isMotionDetected',
-            thumbnailSupport: ThumbnailSupport.NONE,
+        endMetadata: {
+            valueExpression: 'payload.smartDetectTypes',
         },
     },
     {
@@ -71,12 +71,31 @@ const EventModels: UnifiEventModel[] = [
                 isMotionDetected: false,
             },
         },
-        metadata: {
+        startMetadata: {
             label: 'Motion Detection',
-            hasDuration: false,
+            hasMultiple: false,
             id: 'MotionDetection',
             valueExpression: 'payload.isMotionDetected',
             thumbnailSupport: ThumbnailSupport.NONE,
+            idLocation: CameraIDLocation.ACTION_ID,
+        },
+    },
+    {
+        shapeProfile: {
+            action: {
+                modelKey: 'camera',
+            },
+            payload: {
+                isMotionDetected: true,
+            },
+        },
+        startMetadata: {
+            label: 'Motion Detection',
+            hasMultiple: false,
+            id: 'MotionDetection',
+            valueExpression: 'payload.isMotionDetected',
+            thumbnailSupport: ThumbnailSupport.NONE,
+            idLocation: CameraIDLocation.ACTION_ID,
         },
     },
     {
@@ -88,12 +107,13 @@ const EventModels: UnifiEventModel[] = [
                 type: 'motion',
             },
         },
-        metadata: {
+        startMetadata: {
             label: 'Motion Event',
-            hasDuration: true,
+            hasMultiple: true,
             id: 'MotionEvent',
             thumbnailSupport: ThumbnailSupport.START_WITH_DELAYED_END,
-        },
+            idLocation: CameraIDLocation.PAYLOAD_CAMERA,
+        }
     },
     {
         shapeProfile: {
@@ -104,11 +124,12 @@ const EventModels: UnifiEventModel[] = [
                 type: 'ring',
             },
         },
-        metadata: {
+        startMetadata: {
             label: 'Door Bell Ring',
-            hasDuration: false,
+            hasMultiple: false,
             id: 'DoorBell',
             thumbnailSupport: ThumbnailSupport.SINGLE_DELAYED,
+            idLocation: CameraIDLocation.PAYLOAD_CAMERA,
         },
     },
     {
@@ -119,13 +140,15 @@ const EventModels: UnifiEventModel[] = [
             payload: {
                 type: 'smartDetectZone',
                 smartDetectTypes: ['package'],
+               
             },
         },
-        metadata: {
+        startMetadata: {
             label: 'Package Detected',
-            hasDuration: false,
+            hasMultiple: false,
             id: 'Package',
             thumbnailSupport: ThumbnailSupport.SINGLE_DELAYED,
+            idLocation: CameraIDLocation.PAYLOAD_CAMERA,
         },
     },
     {
@@ -136,13 +159,15 @@ const EventModels: UnifiEventModel[] = [
             payload: {
                 type: 'smartDetectZone',
                 smartDetectTypes: ['vehicle'],
+              
             },
         },
-        metadata: {
+        startMetadata: {
             label: 'Vehicle Detected',
-            hasDuration: true,
+            hasMultiple: true,
             id: 'Vehicle',
             thumbnailSupport: ThumbnailSupport.START_WITH_DELAYED_END,
+            idLocation: CameraIDLocation.PAYLOAD_CAMERA,
         },
     },
     {
@@ -153,13 +178,53 @@ const EventModels: UnifiEventModel[] = [
             payload: {
                 type: 'smartDetectZone',
                 smartDetectTypes: ['person'],
+              
             },
         },
-        metadata: {
+        startMetadata: {
             label: 'Person Detected',
-            hasDuration: true,
+            hasMultiple: true,
             id: 'Person',
             thumbnailSupport: ThumbnailSupport.START_WITH_DELAYED_END,
+            idLocation: CameraIDLocation.PAYLOAD_CAMERA,
+        },
+    },
+    {
+        shapeProfile: {
+            action: {
+                action: 'add',
+            },
+            payload: {
+                type: 'smartDetectZone',
+                smartDetectTypes: ['animal'],
+               
+            },
+        },
+        startMetadata: {
+            label: 'Animal Detected',
+            hasMultiple: true,
+            id: 'Animal',
+            thumbnailSupport: ThumbnailSupport.START_WITH_DELAYED_END,
+            idLocation: CameraIDLocation.PAYLOAD_CAMERA,
+        },
+    },
+    {
+        shapeProfile: {
+            action: {
+                action: 'add',
+            },
+            payload: {
+                type: 'smartDetectZone',
+                smartDetectTypes: ['licensePlate'],
+              
+            },
+        },
+        startMetadata: {
+            label: 'License Plate Scan',
+            hasMultiple: true,
+            id: 'LicensePlate',
+            thumbnailSupport: ThumbnailSupport.START_WITH_DELAYED_END,
+            idLocation: CameraIDLocation.PAYLOAD_CAMERA,
         },
     },
 ]
