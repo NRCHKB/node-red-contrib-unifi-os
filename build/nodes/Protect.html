@@ -13,11 +13,11 @@
             },
             cameraIds: {
                 value: '',
-                required: true,
+                required: false,
             },
             eventIds: {
                 value: '',
-                required: true,
+                required: false,
             },
             debug: {
                 value: false,
@@ -31,7 +31,7 @@
         icon: 'unifi.png',
         color: '#159eda',
         label: function () {
-            return this.name || 'Unifi Protect Camera'
+            return this.name || 'Unifi Protect'
         },
         labelStyle: function () {
             return this.name ? 'node_label_italic' : ''
@@ -159,8 +159,9 @@
    
 
     <div class="form-tips">
-        <span style="font-weight:bold;">Note:</span> The Alarm event is based on <strong>UL-217</strong> (smoke) and <strong>UL-2034</strong> (carbon monoxide) compliant sirens. Please check your sirens to ensure they are compliant with these standards. Alarm detections must be enabled per-camera in the UniFi Protect UI.
+        <span style="font-weight:bold;">Note:</span> Enbaling <code>Debug</code> will output raw/unfiltered Protect events, whether or not cameras and / or events are selected.
     </div>
+    <br />
     <div class="form-tips" id="node-warning">
         <span style="color:orange; font-weight:bold;">Warning:</span> The selected console does not appear to have a protect Instance running, or it's config has just been created and needs deploying before cameras can be fetched.
     </div>
