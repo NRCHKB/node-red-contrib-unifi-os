@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    if: github.event.release.prereleased == true
+    if: "github.event.release.prerelease"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -19,7 +19,7 @@ jobs:
           npm run test
 
   build-publish:
-    if: github.event.release.prereleased == true
+    if: "github.event.release.prerelease"
     needs: test
     runs-on: ubuntu-latest
     steps:
