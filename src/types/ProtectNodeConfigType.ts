@@ -2,13 +2,8 @@ import { NodeDef } from 'node-red'
 
 type ProtectNodeConfigType = NodeDef & {
     accessControllerNodeId: string
-    cameraId: string
-    eventIds: string[]
-    snapshotMode: string
-    snapshotW: string
-    snapshotH: string
-    delayedSnapshotTime: string
-    fanned: boolean
-    outputs: number
+    cameraIds: string
+    eventIds: string
+    debug: boolean
 }
 export default ProtectNodeConfigType

@@ -9,19 +9,18 @@ import AccessControllerNodeType from './types/AccessControllerNodeType'
 import { Bootstrap } from './types/Bootstrap'
 
 export enum SocketStatus {
-    UNKNOWN = -1,
-    CONNECTED = 0,
-    RECOVERING_CONNECTION = 1,
-    RECOVERY_ERROR = 3,
+    UNKNOWN = 0,
+    CONNECTING = 1,
+    CONNECTED = 2,
+    RECOVERING_CONNECTION = 3,
     CONNECTION_ERROR = 4,
+    HEARTBEAT = 5,
 }
 
-const CLOSE_REASON = 'SELF_CLOSE'
 export type WSDataCallback = (data: any) => void
 export type WSStatusCallback = (status: SocketStatus) => void
 
 export interface Interest {
-    deviceId: string
     dataCallback: WSDataCallback
     statusCallback: WSStatusCallback
 }
@@ -33,13 +32,9 @@ export class SharedProtectWebSocket {
     private accessControllerConfig: AccessControllerNodeConfigType
     private accessController: AccessControllerNodeType
     private wsLogger: Loggers
-    private heartbeatTimer?: NodeJS.Timeout
-    private reconnectTimer?: NodeJS.Timeout
-    private didOnceConnect = false
-    private RECONNECT_TIMEOUT = 30000
-    private HEARTBEAT_INTERVAL = 15000
+    private RECONNECT_TIMEOUT = 15000
+    private HEARTBEAT_INTERVAL = 10000
     private RECONNECT_ERROR_THRESHOLD = 3
-    private pongReceived = false // for some reason we get 2 pongs to 1 ping - this is to clear up confusion on debug
     private reconnectAttempts = 0
     private currentStatus: SocketStatus = SocketStatus.UNKNOWN
 
@@ -67,9 +62,7 @@ export class SharedProtectWebSocket {
 
         this.wsLogger = logger('UniFi', 'SharedProtectWebSocket')
 
-        this.connect().catch((Error) => {
-            console.error(Error)
-        })
+        this.connect()
     }
 
     shutdown(): void {
@@ -77,59 +70,11 @@ export class SharedProtectWebSocket {
         this.callbacks = {}
     }
 
-    // A full disconnect
     private disconnect(): void {
-        this.wsLogger.debug('Disconnecting...')
-        this.pongReceived = false
-        if (this.heartbeatTimer) clearTimeout(this.heartbeatTimer)
         this.ws?.removeAllListeners()
-        this.ws?.close(1000, CLOSE_REASON)
+        this.ws?.close()
         this.ws?.terminate()
         this.ws = undefined
-    }
-
-    // Heartbeat in 15, 14, 13....
-    private scheduleHeartbeat(): void {
-        this.wsLogger.trace(
-            `Scheduling heartbeat: ${this.HEARTBEAT_INTERVAL}...`
-        )
-        this.heartbeatTimer = setTimeout(
-            () => this.heartbeat(),
-            this.HEARTBEAT_INTERVAL
-        )
-    }
-
-    // The Heartbeat its self
-    private heartbeat(): void {
-        this.wsLogger.trace('Sending heartbeat...')
-        this.pongReceived = false
-        this.ws?.ping()
-        this.reconnect()
-    }
-
-    // Heartbeat received, schedule another
-    private heartbeatReceived(): void {
-        if (this.pongReceived) {
-            return
-        }
-        this.pongReceived = true
-        this.wsLogger.trace('Heartbeat received, cancelling reconnects...')
-        if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
-        this.scheduleHeartbeat()
-    }
-
-    // Reconnect
-    private reconnect(): void {
-        this.wsLogger.debug(
-            `Scheduling reconnect: ${this.RECONNECT_TIMEOUT}...`
-        )
-        this.reconnectTimer = setTimeout(() => {
-            this.disconnect()
-            this.reconnectAttempts++
-            this.connect().catch((Error) => {
-                console.error(Error)
-            })
-        }, this.RECONNECT_TIMEOUT)
     }
 
     private updateStatusForNodes = (Status: SocketStatus): Promise<void> => {
@@ -143,105 +88,105 @@ export class SharedProtectWebSocket {
         })
     }
 
-    private connect(): Promise<void> {
-        return new Promise(async (resolve, reject) => {
-            const wsPort =
-                this.accessControllerConfig.wsPort ||
-                endpoints[this.accessController.controllerType].wsport
-            const url = `${endpoints.protocol.webSocket}${this.accessControllerConfig.controllerIp}:${wsPort}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
+    private async watchDog(): Promise<void> {
+        setTimeout(async () => {
+            await this.updateStatusForNodes(SocketStatus.HEARTBEAT)
+            this.ws?.ping()
 
-            this.wsLogger.debug(`Connecting to ${url}...`)
+            const reconnectTimer = setTimeout(async () => {
+                await this.updateStatusForNodes(
+                    SocketStatus.RECOVERING_CONNECTION
+                )
+                this.disconnect()
+                this.connect()
+            }, this.RECONNECT_TIMEOUT)
 
-            this.ws = new WebSocket(url, {
-                rejectUnauthorized: false,
-                headers: {
-                    Cookie: await this.accessController.getAuthCookie(),
-                },
+            this.ws?.once('pong', async () => {
+                clearTimeout(reconnectTimer)
+                await this.updateStatusForNodes(SocketStatus.CONNECTED)
+                this.watchDog()
             })
+        }, this.HEARTBEAT_INTERVAL)
+    }
 
-            this.ws?.on('error', (error) => {
-                this.wsLogger.error(`${error}`)
-                reject(error)
-                if (this.didOnceConnect) {
+    private async connect(): Promise<void> {
+        if (this.currentStatus !== SocketStatus.RECOVERING_CONNECTION) {
+            await this.updateStatusForNodes(SocketStatus.CONNECTING)
+        }
+
+        const wsPort =
+            this.accessControllerConfig.wsPort ||
+            endpoints[this.accessController.controllerType].wsport
+        const url = `${endpoints.protocol.webSocket}${this.accessControllerConfig.controllerIp}:${wsPort}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
+
+        this.ws = new WebSocket(url, {
+            rejectUnauthorized: false,
+            headers: {
+                Cookie: await this.accessController.getAuthCookie(),
+            },
+        })
+
+        this.ws?.on('error', () => {
+            //
+        })
+
+        let connectCheckInterval: NodeJS.Timeout | undefined
+
+        connectCheckInterval = setInterval(async () => {
+            switch (this.ws?.readyState) {
+                case WebSocket.OPEN:
+                    if (connectCheckInterval) {
+                        clearInterval(connectCheckInterval)
+                        connectCheckInterval = undefined
+                    }
+                    await this.updateStatusForNodes(SocketStatus.CONNECTED)
+                    this.watchDog()
+
+                    this.ws?.on('message', (data) => {
+                        let objectToSend: any
+
+                        try {
+                            objectToSend = JSON.parse(data.toString())
+                        } catch (_) {
+                            objectToSend = ProtectApiUpdates.decodeUpdatePacket(
+                                this.wsLogger,
+                                data as Buffer
+                            )
+                        }
+
+                        Object.keys(this.callbacks).forEach((Node) => {
+                            const Interest = this.callbacks[Node]
+                            Interest.dataCallback(objectToSend)
+                        })
+                    })
+                    break
+
+                case WebSocket.CONNECTING: // maybe split this
+                case WebSocket.CLOSED:
+                case WebSocket.CLOSING:
                     if (
                         this.reconnectAttempts > this.RECONNECT_ERROR_THRESHOLD
                     ) {
-                        this.updateStatusForNodes(SocketStatus.RECOVERY_ERROR)
-                    } else {
-                        this.updateStatusForNodes(
-                            SocketStatus.RECOVERING_CONNECTION
-                        )
-                    }
-                    this.reconnect()
-                } else {
-                    this.reconnectAttempts = 0
-                    this.updateStatusForNodes(SocketStatus.CONNECTION_ERROR)
-                }
-            })
-
-            await new Promise((resolve) => setTimeout(resolve, 2000))
-
-            if (this.ws?.readyState === WebSocket.OPEN) {
-                this.reconnectAttempts = 0
-                this.didOnceConnect = true
-                this.wsLogger.debug(`Connection to ${url} open`)
-
-                this.updateStatusForNodes(SocketStatus.CONNECTED)
-
-                this.ws?.on('message', (data) => {
-                    let objectToSend: any
-
-                    try {
-                        objectToSend = JSON.parse(data.toString())
-                    } catch (_) {
-                        objectToSend = ProtectApiUpdates.decodeUpdatePacket(
-                            this.wsLogger,
-                            data as Buffer
-                        )
-                    }
-
-                    Object.keys(this.callbacks).forEach((Node) => {
-                        const Interest = this.callbacks[Node]
-                        if (
-                            Interest.deviceId === objectToSend.payload.camera ||
-                            objectToSend.payload.camera === undefined
-                        ) {
-                            Interest.dataCallback(objectToSend)
+                        if (connectCheckInterval) {
+                            clearInterval(connectCheckInterval)
+                            connectCheckInterval = undefined
                         }
-                    })
-                })
-
-                this.ws?.on('close', (code, reason) => {
-                    this.wsLogger.debug(
-                        `Connection to ${url} closed. Code: ${code}, Reason: ${reason.toString()}`
-                    )
-                    switch (code) {
-                        case 1000:
-                            if (reason.toString() !== CLOSE_REASON) {
-                                /* This wasn't me, therefore the server requested we close. We better schedule a reconnect, it could be restarting */
-                                this.reconnect()
-                            }
-                            break
-
-                        case 1006:
-                            /* Well this was unexpected - We better schedule a reconnect */
-                            this.reconnect()
-                            break
-
-                        case 1012:
-                            /* The console is being restarted, lets schedule a reconnect */
-                            this.reconnect()
-                            break
+                        await this.updateStatusForNodes(
+                            SocketStatus.CONNECTION_ERROR
+                        )
+                    } else {
+                        if (connectCheckInterval) {
+                            clearInterval(connectCheckInterval)
+                            connectCheckInterval = undefined
+                        }
+                        this.reconnectAttempts++
+                        setTimeout(async () => {
+                            this.connect()
+                        }, this.RECONNECT_TIMEOUT)
                     }
-                })
-
-                /* This should in theory provide recovery for both the console suddenly being disconnect or some other lost connection */
-                this.ws?.on('pong', () => this.heartbeatReceived())
-                this.scheduleHeartbeat()
+                    break
             }
-
-            resolve()
-        })
+        }, 5000)
     }
 
     deregisterInterest(nodeId: string): void {
@@ -255,14 +200,9 @@ export class SharedProtectWebSocket {
 
     updateLastUpdateId(newBootstrap: Bootstrap): void {
         if (newBootstrap.lastUpdateId !== this.bootstrap.lastUpdateId) {
-            this.wsLogger.debug(
-                'New lastUpdateId received, re-configuring Shared Socket'
-            )
-            this.bootstrap = newBootstrap
             this.disconnect()
-            this.connect().catch((Error) => {
-                console.error(Error)
-            })
+            this.bootstrap = newBootstrap
+            this.connect()
         } else {
             this.bootstrap = newBootstrap
         }

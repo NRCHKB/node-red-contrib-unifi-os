@@ -1,43 +1,36 @@
-name: Dev publish
+name: Publish DEV
 
 on:
-  push:
-    branches:
-      - dev
+  release:
+    types: [published]
 
 jobs:
-  build:
+  test:
+    if: "github.event.release.prerelease"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 14
-      - run: |
-          npm install -g npm
-          npm ci
+          node-version: 18
+      - run: | 
+          npm install
           npm run build
-          npm test
+          npm run test
 
-  publish-npm:
-    needs: build
+  build-publish:
+    if: "github.event.release.prerelease"
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: 14
+          node-version: 18
           registry-url: https://registry.npmjs.org/
-          always-auth: true
-      - name: Extract PACKAGE_VERSION
-        id: package-version
-        uses: martinbeentjes/npm-get-version-action@master
-      - name: Publish
-        if: contains(steps.package-version.outputs.current-version, 'dev') == true
-        run: |
-          npm install -g npm
-          npm ci
+      - run: | 
+          npm install
           npm run build
-          npm publish --tag dev
+          npm publish --access public --tag dev
         env:
           NODE_AUTH_TOKEN: ${{secrets.NODE_TKN}}

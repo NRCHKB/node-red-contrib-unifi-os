@@ -1,27 +1,4 @@
 <script type="text/javascript">
-    let selectedCamera
-    /* 
-        These are a mirror of the event models that can be found in EventModels.ts, so ensure they match (at most the ID)
-        This is used to create the event selection (and output lables if splitting the events)
-        The labels for the events coming from the node its self, are contained in EventModels.ts
-    */
-    const Events = [
-        { id: 'Alarm', display: 'Alarm' },
-        { id: 'DoorBell', display: 'Door Bell Ring' },
-        { id: 'MotionDetection', display: 'Motion Detection' },
-        { id: 'MotionEvent', display: 'Motion Event' },
-        { id: 'Package', display: 'Package Detected' },
-        { id: 'Person', display: 'Person Detected' },
-        { id: 'Vehicle', display: 'Vehicle Detected' },
-    ]
-
-    // Lets sort them (its quite important, to ensure we correctly assign them in the node logic later)
-    Events.sort(function (a, b) {
-        if (a.id > b.id) return 1
-        if (a.id < b.id) return -1
-        return 0
-    })
-
     RED.nodes.registerType('unifi-protect', {
         category: 'UniFi',
         defaults: {
@@ -34,171 +11,124 @@
                 type: 'unifi-access-controller',
                 required: true,
             },
-            cameraId: {
+            cameraIds: {
                 value: '',
-                required: true,
+                required: false,
             },
             eventIds: {
-                value: [],
-                required: true,
+                value: '',
+                required: false,
             },
-            snapshotMode: {
-                value: 'None',
-                required: true,
-            },
-            snapshotW: {
-                validate: RED.validators.number(),
-                value: 360,
-                required: true,
-            },
-            snapshotH: {
-                validate: RED.validators.number(),
-                value: 360,
-                required: true,
-            },
-            delayedSnapshotTime: {
-                validate: RED.validators.number(),
-                value: 2000,
-                required: true,
-            },
-            fanned: {
+            debug: {
                 value: false,
                 required: true,
             },
-            outputs: {
-                value: 2,
-                required: true,
-            },
+            outputs: { value: 1 },
         },
         inputs: 1,
-        outputs: 2,
-        outputLabels: function (index) {
-            if (!this.fanned) {
-                switch (index) {
-                    case 0:
-                        return 'Event'
-
-                    case 1:
-                        return 'Delayed Snapshots'
-                }
-            } else {
-                const ID = this.eventIds[index]
-                if (!ID) {
-                    return 'Delayed Snapshots' // if we asking for an index that is outside the events, it will be delayed snapshot
-                } else {
-                    const ev = Events.filter((E) => E.id === ID)[0]
-                    return ev.display
-                }
-            }
-        },
-        icon: 'protect.png',
+        outputs: 1,
+        outputLabels: ['Events', 'Debug'],
+        icon: 'unifi.png',
         color: '#159eda',
         label: function () {
-            return this.name || 'Unifi Protect Camera'
+            return this.name || 'Unifi Protect'
         },
         labelStyle: function () {
             return this.name ? 'node_label_italic' : ''
         },
         oneditsave: function () {
-            const Split = $('#node-input-fanned').prop('checked')
-            const Items = $('#el-node-input-eventIds').treeList('data')
-            let Count = 0
-
-            this.eventIds = []
-
-            Items.forEach((I) => {
-                if (I.treeList.checkbox.prop('checked')) {
-                    Count++
-                    this.eventIds.push(I.id)
-                }
-            })
-
-            if (Split) {
-                this.outputs = Count + 1 // +1 for delayed snapshots - which will always be the last output
-            } else {
+             if ($('#node-input-debug').prop('checked')) {
                 this.outputs = 2
+            } else {
+                this.outputs = 1
             }
         },
         oneditprepare: function () {
             const self = this
-            selectedCamera = undefined
 
             setTimeout(() => {
-                if (self.cameraId) {
-                    selectedCamera = self.cameraId
-                }
+                // List Cameras (will fill it later)
+                $('#node-input-cameraIds').typedInput({
+                    type: 'cameras',
+                    types: [
+                        {
+                            value: 'cameras',
+                            multiple: true,
+                            options: [],
+                        },
+                    ],
+                })
 
+                // List Events
+                const Events = [
+                    { value: 'AudioDetection', label: 'Audio Detection' },
+                    { value: 'Animal', label: 'Animal Detected [Multiple]' },
+                    { value: 'DoorBell', label: 'Door Bell Ring' },
+                    { value: 'LicensePlate', label: 'License Plate [Multiple]' },
+                    { value: 'MotionDetection', label: 'Motion Detection ' },
+                    { value: 'MotionEvent', label: 'Motion Event [Multiple]' },
+                    { value: 'Package', label: 'Package Detected' },
+                    { value: 'Person', label: 'Person Detected [Multiple]' },
+                    { value: 'Vehicle', label: 'Vehicle Detected [Multiple]' },
+                ]
+                $('#node-input-eventIds').typedInput({
+                    type: 'events',
+                    types: [
+                        {
+                            value: 'events',
+                            multiple: true,
+                            options: Events,
+                        },
+                    ],
+                })
+
+                // Chexk if we have already select a controller
                 if (self.accessControllerNodeId) {
-                    controllerSelected()
+                    getCameras(self)
                 }
-
-                showHideSnapshotOptions()
-
-                $('#node-input-accessControllerNodeId').change(
-                    controllerSelected
-                )
-                $('#node-input-snapshotMode').change(showHideSnapshotOptions)
-
-                const EventList = []
-                Events.forEach((E) => {
-                    EventList.push({
-                        label: E.display,
-                        id: E.id,
-                        checkbox: true,
-                    })
+                $('#node-input-accessControllerNodeId').change(() => {
+                    getCameras(self)
                 })
-
-                $('#el-node-input-eventIds').treeList({ data: EventList })
-                const Items = $('#el-node-input-eventIds').treeList('data')
-                self.eventIds.forEach((E) => {
-                    Items.find((I) => I.id === E).treeList.checkbox.prop(
-                        'checked',
-                        true
-                    )
-                })
-            }, 10)
+            }, 5)
         },
     })
 
-    function controllerSelected() {
-        const ControllerID = $('#node-input-accessControllerNodeId').val()
-        if (ControllerID && ControllerID !== '_ADD_') {
-            listCameras(ControllerID)
-        }
-    }
+    function getCameras(self) {
+        const CID = $('#node-input-accessControllerNodeId').val()
 
-    function listCameras(ControllerID) {
-        $('#node-input-cameraId').empty()
-        $('#node-input-cameraId').append(
-            `<option value="" selected>Choose...</option>`
-        )
+        $.getJSON(`nrchkb/unifi/bootsrap/${CID}`, (data) => {
+            if (data.cameras) {
+                const cameras = []
+                data.cameras.forEach((Camera) => {
+                    cameras.push({
+                        value: `${Camera.id}`,
+                        label: `${Camera.name} (${Camera.type})`,
+                    })
+                })
 
-        $.getJSON(`nrchkb/unifi/bootsrap/${ControllerID}`, (data) => {
-            data.cameras.forEach((Camera) => {
-                $('#node-input-cameraId').append(
-                    `<option value="${Camera.id}">${Camera.name} (${Camera.type})</option>`
-                )
-            })
-            if (selectedCamera) {
-                $('#node-input-cameraId').val(selectedCamera)
+                $('#node-input-cameraIds').typedInput('types', [
+                    { value: 'cameras', multiple: true, options: cameras },
+                ])
+
+                if (self.cameraIds) {
+                    $('#node-input-cameraIds').typedInput(
+                        'value',
+                        self.cameraIds
+                    )
+                }
+                $('#node-warning').fadeOut('fast')
+            } else {
+                $('#node-input-cameraIds').typedInput('types', [
+                    { value: 'cameras', multiple: true, options: [] },
+                ])
+                $('#node-warning').fadeIn('fast')
             }
-            $('#node-warning').fadeOut('fast')
         }).fail(function () {
+            $('#node-input-cameraIds').typedInput('types', [
+                { value: 'cameras', multiple: true, options: [] },
+            ])
             $('#node-warning').fadeIn('fast')
         })
-    }
-
-    function showHideSnapshotOptions() {
-        const Value = $('#node-input-snapshotMode').val()
-        switch (Value) {
-            case 'None':
-                $('.unifi-snapshot').fadeOut('fast')
-                break
-
-            default:
-                $('.unifi-snapshot').fadeIn('fast')
-                break
-        }
     }
 </script>
 
@@ -215,48 +145,27 @@
         </select>
     </div>
     <div class="form-row">
-        <label for="node-input-cameraId"><i class="fa fa-video-camera"></i> Camera</label>
-        <select id="node-input-cameraId">
-            <option value="" selected>Choose...</option>
-        </select>
+        <label for="node-input-cameraIds"><i class="fa fa-video-camera"></i> Camera</label>
+        <input type="text" id="node-input-cameraIds">
     </div>
     <div class="form-row">
-        <label for="el-node-input-eventIds" style="vertical-align: top;"><i class="fa fa-list"></i> Events</label>
-            <div id="el-node-input-eventIds" style="height: 220px; width: 70%; display: inline-block; vertical-align: top;"></div>
-        </select>
+        <label for="node-input-eventIds"><i class="fa fa-list"></i> Events</label>
+        <input type="text" id="node-input-eventIds">
     </div>
     <div class="form-row">
-        <label for="node-input-fanned"><i class="fa fa-list"></i> Split outputs</label>
-        <input type="checkbox" id="node-input-fanned">
+        <label for="node-input-debug"><i class="fa fa-bug"></i>  Debug</label>
+        <input type="checkbox" id="node-input-debug">
     </div>
-    <div class="form-row">
-        <label for="node-input-snapshotMode"><i class="fa fa-image"></i> Snapshots</label>
-        <select id="node-input-snapshotMode">
-            <option value="None" selected>None</option>
-            <option value="Initial">Initial Only (if supported)</option>
-            <option value="InitialDelayed">Initial And Delayed (if supported)</option>
-            <option value="InitialRetain">Retain Initial (if supported)</option>
-        </select>
-    </div>
-    <div class="form-row unifi-snapshot">
-        <label for="node-input-snapshotW"><i class="fa fa fa-arrows-h"></i> Width</label>
-        <input type="number" id="node-input-snapshotW" placeholder="360" />
-    </div>
-    <div class="form-row unifi-snapshot">
-        <label for="node-input-snapshotH"><i class="fa fa-arrows-v"></i> Height</label>
-        <input type="number" id="node-input-snapshotH" placeholder="360" />
-    </div>
-    <div class="form-row unifi-snapshot">
-        <label for="node-input-delayedSnapshotTime"><i class="fa fa-clock-o"></i> Delay Time</label>
-        <input type="number" id="node-input-delayedSnapshotTime" placeholder="2000" />
-    </div>
-    <div class="form-tips unifi-snapshot" id="node-tip">
-        <span style="color:orange; font-weight:bold;">Warning:</span> The larger the snapshot size, the more time needed to deliver the event to your flow. Not all event types support a snapshot, therefore will not be included. 
-        The <code>Delay Time</code> value represents how long to give the controller to generate any snapshot that are not immediately available at the time of the event.
-    </div>
+   
+
     <div class="form-tips">
-        <span style="font-weight:bold;">Note:</span> The Alarm event is based on <strong>UL-217</strong> (smoke) and <strong>UL-2034</strong> (carbon monoxide) compliant sirens. Please check your sirens to ensure they are compliant with these standards. Alarm detections must be enabled per-camera in the UniFi Protect UI.
+        <span style="font-weight:bold;">Note:</span> Enbaling <code>Debug</code> will output raw/unfiltered Protect events, whether or not cameras and / or events are selected.
     </div>
+    <br />
+    <div class="form-tips">
+        <span style="font-weight:bold;">[Multiple]:</span> These events consist of 2 events, the 1st being when the event started, the 2nd when it has ended, the payloads will advise also via a <code>expectEndEvent</code> property
+    </div>
+    <br />
     <div class="form-tips" id="node-warning">
         <span style="color:orange; font-weight:bold;">Warning:</span> The selected console does not appear to have a protect Instance running, or it's config has just been created and needs deploying before cameras can be fetched.
     </div>

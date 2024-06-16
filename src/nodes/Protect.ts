@@ -3,18 +3,12 @@ import { isMatch } from 'lodash'
 import { NodeAPI } from 'node-red'
 import util from 'util'
 
-import EventModels, { ThumbnailSupport } from '../EventModels'
+import EventModels, { CameraIDLocation, ThumbnailSupport } from '../EventModels'
 import { Interest, SocketStatus } from '../SharedProtectWebSocket'
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
+import { Camera } from '../types/Bootstrap'
 import ProtectNodeConfigType from '../types/ProtectNodeConfigType'
 import ProtectNodeType from '../types/ProtectNodeType'
-
-const initialSnapshotModeRequirements = [
-    'InitialDelayed',
-    'Initial',
-    'InitialRetain',
-]
-const endSnapshotModeRequirements = ['InitialDelayed']
 
 module.exports = (RED: NodeAPI) => {
     const reqRootPath = '/proxy/protect/api'
@@ -38,7 +32,7 @@ module.exports = (RED: NodeAPI) => {
             self.status({
                 fill: 'red',
                 shape: 'dot',
-                text: 'Access Controller not found',
+                text: 'Access Controller not found / or configured',
             })
             return
         }
@@ -63,6 +57,11 @@ module.exports = (RED: NodeAPI) => {
 
             checkAndWait()
         }).then(() => {
+            self.status({
+                fill: 'green',
+                shape: 'dot',
+                text: 'Connected',
+            })
             body.call(self)
         })
     }
@@ -83,39 +82,38 @@ module.exports = (RED: NodeAPI) => {
 
         self.on('input', (msg) => {
             log.debug('Received input message: ' + util.inspect(msg))
-            const Path = getReqPath('cameras', self.config.cameraId)
+            if (msg.topic) {
+                const Path = getReqPath('cameras', msg.topic)
 
-            self.status({
-                fill: 'grey',
-                shape: 'dot',
-                text: 'Sending...',
-            })
-
-            self.accessControllerNode
-                .request(self.id, Path, 'PATCH', msg.payload, 'json')
-                .then((data) => {
-                    self.status({
-                        fill: 'green',
-                        shape: 'dot',
-                        text: 'Sent',
-                    })
-                    log.debug('Result:')
-                    log.trace(util.inspect(data))
-
-                    self.send({
-                        payload: data,
-                        inputMsg: msg,
-                    })
+                self.status({
+                    fill: 'grey',
+                    shape: 'dot',
+                    text: 'Sending...',
                 })
-                .catch((error) => {
-                    log.error(error)
 
-                    self.status({
-                        fill: 'red',
-                        shape: 'dot',
-                        text: error.message,
+                self.accessControllerNode
+                    .request(self.id, Path, 'PATCH', msg.payload, 'json')
+                    .then((data) => {
+                        self.status({
+                            fill: 'green',
+                            shape: 'dot',
+                            text: 'Sent',
+                        })
+                        log.debug('Result:')
+                        log.trace(util.inspect(data))
+
+                        self.send([{ payload: data, inputMsg: msg }, undefined])
                     })
-                })
+                    .catch((error) => {
+                        log.error(error)
+
+                        self.status({
+                            fill: 'red',
+                            shape: 'dot',
+                            text: error.message,
+                        })
+                    })
+            }
         })
 
         self.status({
@@ -123,48 +121,6 @@ module.exports = (RED: NodeAPI) => {
             shape: 'dot',
             text: 'Initialized',
         })
-
-        // Get Snapshot
-        const getSnapshot = (eventId: string): Promise<any | undefined> => {
-            return new Promise((resolve, reject) => {
-                const URI = `/proxy/protect/api/events/${eventId}/thumbnail?h=${self.config.snapshotH}&w=${self.config.snapshotW}`
-                self.accessControllerNode
-                    .request(self.id, URI, 'GET', undefined, 'arraybuffer')
-                    .then((D) => {
-                        resolve(D)
-                    })
-                    .catch((e) => {
-                        reject(e)
-                    })
-            })
-        }
-
-        // Triger SS timer
-        const DelaySnapshot = (EID: string, Topic: string) => {
-            setTimeout(() => {
-                getSnapshot(EID)
-                    .then((D) => {
-                        const UserPL = {
-                            payload: {
-                                associatedEventId: EID,
-                                snapshotBuffer: D,
-                            },
-                            topic: Topic,
-                        }
-                        if (!self.config.fanned) {
-                            self.send([undefined, UserPL])
-                        } else {
-                            // SORT
-                            const array = new Array(this.config.outputs)
-                            array[array.length - 1] = UserPL
-                            self.send(array)
-                        }
-                    })
-                    .catch((e) => {
-                        console.error(e)
-                    })
-            }, parseInt(self.config.delayedSnapshotTime))
-        }
 
         // Awaiter (Node RED 3.1 evaluateJSONataExpression )
         let _AwaiterResolver: (value?: unknown) => void
@@ -176,181 +132,200 @@ module.exports = (RED: NodeAPI) => {
 
         // Register our interest in Protect Updates.
         const handleUpdate = async (data: any) => {
-            /*  This is to mirror the output pin assigmnets
-                we will use indexOf on it later
-            */
-            self.config.eventIds.sort(function (a, b) {
-                if (a > b) return 1
-                if (a < b) return -1
-                return 0
-            })
-
-            // We will update it later
-            let pinIndex = 0
+            // Debug ?
+            if (self.config.debug) {
+                self.send([undefined, { payload: data }])
+            }
 
             // Get ID
-            const EID = data.action.id.split('-')[0]
+            const eventId = data.action.id
 
-            // Is End event?
-            const isEnd =
-                data.payload.end !== undefined &&
-                data.action.action === 'update'
+            // Date
+            const Now = new Date().getTime()
 
-            if (isEnd) {
-                // End of Event
+            // Check if we are expecting an end
+            const startEvent = startEvents[eventId]
 
-                const StartOfEvent = startEvents[EID]
-                if (StartOfEvent !== undefined) {
-                    // This may be crucial later
-                    pinIndex = StartOfEvent._internal.pinIndex
-
-                    const EndDate = data.payload.end
-                    const Duration =
-                        EndDate - StartOfEvent.payload.timestamps.startDate
-
-                    const UserPL: any = {
-                        payload: StartOfEvent.payload,
+            if (startEvent) {
+                // Is this an end only event
+                const onEnd =
+                    startEvent.payload._profile.startMetadata.sendOnEnd === true
+                if (!onEnd) {
+                    startEvent.payload.timestamps.endDate =
+                        data.payload.end || Now
+                    startEvent.payload.eventStatus = 'EndOfEvent'
+                } else {
+                    startEvent.payload.timestamps = {
+                        eventDate: data.payload.end || Now,
                     }
-
-                    UserPL.payload.eventStatus = 'Stopped'
-                    UserPL.payload.timestamps.endDate = EndDate
-                    UserPL.payload.timestamps.duration = Duration
-
-                    if (self.config.snapshotMode !== 'InitialRetain') {
-                        delete UserPL.payload.snapshotBuffer
-                    }
-
-                    if (
-                        self.config.snapshotMode === 'None' ||
-                        self.config.snapshotMode === 'Initial'
-                    ) {
-                        UserPL.payload.snapshotAvailability = 'DISABLED'
-                    }
-
-                    if (
-                        endSnapshotModeRequirements.includes(
-                            self.config.snapshotMode
-                        )
-                    ) {
-                        const EventThumbnailSupport: ThumbnailSupport =
-                            StartOfEvent._internal.identifiedEvent.metadata
-                                .thumbnailSupport
-
-                        switch (EventThumbnailSupport) {
-                            case ThumbnailSupport.NONE:
-                                UserPL.payload.snapshotAvailability =
-                                    'NOT_SUPPORTED'
-                                break
-
-                            case ThumbnailSupport.START_END:
-                                try {
-                                    UserPL.payload.snapshotBuffer =
-                                        await getSnapshot(EID)
-                                    UserPL.payload.snapshotAvailability =
-                                        'INLINE'
-                                } catch (e) {
-                                    UserPL.payload.snapshotAvailability =
-                                        'ERROR'
-                                    console.error(e)
-                                }
-                                break
-                            case ThumbnailSupport.START_WITH_DELAYED_END:
-                                DelaySnapshot(EID, UserPL.payload.cameraName)
-                                UserPL.payload.snapshotAvailability = 'DELAYED'
-                                break
-                        }
-                    }
-
-                    if (data.payload.score !== undefined) {
-                        UserPL.payload.score = data.payload.score
-                    }
-
-                    UserPL.payload.originalEventData = data
-                    UserPL.topic = UserPL.payload.cameraName
-
-                    if (!self.config.fanned) {
-                        self.send([UserPL, undefined])
-                    } else {
-                        // SORT
-                        const array = new Array(this.config.outputs)
-                        array[pinIndex] = UserPL
-                        self.send(array)
-                    }
-
-                    delete startEvents[EID]
                 }
+
+                // has End Metadata
+                const hasMeta =
+                    startEvent.payload._profile.endMetadata !== undefined
+                if (hasMeta) {
+                    if (
+                        startEvent.payload._profile.endMetadata
+                            .valueExpression !== undefined
+                    ) {
+                        const Waiter = Awaiter()
+                        const EXP = RED.util.prepareJSONataExpression(
+                            startEvent.payload._profile.endMetadata
+                                .valueExpression,
+                            self
+                        )
+                        RED.util.evaluateJSONataExpression(
+                            EXP,
+                            data,
+                            (_err, res) => {
+                                startEvent.payload.value = res
+                                _AwaiterResolver()
+                            }
+                        )
+
+                        await Promise.all([Waiter])
+                    }
+
+                    if (
+                        startEvent.payload._profile.endMetadata.label !==
+                        undefined
+                    ) {
+                        startEvent.payload.event =
+                            startEvent.payload._profile.endMetadata.label
+                    }
+                }
+
+                const EventThumbnailSupport: ThumbnailSupport | undefined =
+                    startEvent.payload._profile.startMetadata.thumbnailSupport
+
+                switch (EventThumbnailSupport) {
+                    case ThumbnailSupport.START_END:
+                        startEvent.payload.snapshot = {
+                            availability: 'NOW',
+                            uri: `/proxy/protect/api/events/${eventId}/thumbnail`,
+                        }
+                        break
+                    case ThumbnailSupport.START_WITH_DELAYED_END:
+                        startEvent.payload.snapshot = {
+                            availability: 'WITH_DELAY',
+                            uri: `/proxy/protect/api/events/${eventId}/thumbnail`,
+                        }
+                        break
+                }
+
+                delete startEvent.payload._profile
+                delete startEvent.payload.expectEndEvent
+                self.send([RED.util.cloneMessage(startEvent), undefined])
+                delete startEvents[eventId]
             } else {
-                // New Event
-                const Now = new Date().getTime()
+                let Camera: Camera | undefined
+
+                //@ts-expect-error
+                const Cams = RED.util.evaluateNodeProperty(
+                    self.config.cameraIds,
+                    'cameras',
+                    self
+                )
 
                 const identifiedEvent = EventModels.find((eventModel) =>
                     isMatch(data, eventModel.shapeProfile)
                 )
 
                 if (!identifiedEvent) {
-                    log.trace(`Unifi event not recognized: ${data}`)
                     return
                 }
 
-                const Identified =
-                    identifiedEvent &&
-                    self.config.eventIds.includes(identifiedEvent.metadata.id)
+                //@ts-expect-error
+                switch (identifiedEvent.startMetadata.idLocation) {
+                    case CameraIDLocation.ACTION_ID:
+                        if (!Cams.includes(data.action.id)) {
+                            return
+                        }
+                        Camera =
+                            self.accessControllerNode.bootstrapObject?.cameras?.find(
+                                (c) => c.id === data.action.id
+                            )
+                        break
 
-                if (!Identified) {
-                    log.debug(
-                        `Unhandled unifi event received: ${identifiedEvent.metadata}`
-                    )
-                    return
+                    case CameraIDLocation.PAYLOAD_CAMERA:
+                        if (!Cams.includes(data.payload.camera)) {
+                            return
+                        }
+                        Camera =
+                            self.accessControllerNode.bootstrapObject?.cameras?.find(
+                                (c) => c.id === data.payload.camera
+                            )
+                        break
+
+                    case CameraIDLocation.ACTION_RECORDID:
+                        if (!Cams.includes(data.action.recordId)) {
+                            return
+                        }
+                        Camera =
+                            self.accessControllerNode.bootstrapObject?.cameras?.find(
+                                (c) => c.id === data.action.recordId
+                            )
+                        break
                 }
-
-                // Get the index of the ID (this will be asscoiated to the output index)
-                pinIndex = self.config.eventIds.indexOf(
-                    identifiedEvent.metadata.id
-                )
-
-                // Camera should always be found, as this event body wouldn't have triggered otherwise
-                const Camera =
-                    self.accessControllerNode.bootstrapObject?.cameras?.find(
-                        (C: any) => C.id === self.config.cameraId
-                    )
 
                 if (!Camera) {
-                    log.error(
-                        "Seriously! This error should not occur - we wouldn't be here if the camera was not identified at the socket level."
-                    )
                     return
                 }
 
-                const HasDuration = identifiedEvent.metadata.hasDuration
+                const hasEnd =
+                    identifiedEvent.startMetadata.hasMultiple === true
+                const onEnd = identifiedEvent.startMetadata.sendOnEnd === true
+
+                //@ts-expect-error
+                const EVIDsArray = RED.util.evaluateNodeProperty(
+                    self.config.eventIds,
+                    'events',
+                    self
+                )
+
+                const matchedEvent = EVIDsArray.includes(
+                    identifiedEvent.startMetadata.id
+                )
+
+                if (!matchedEvent) {
+                    return
+                }
 
                 const UserPL: any = {
                     payload: {
+                        event: identifiedEvent.startMetadata.label,
+                        eventId: eventId,
                         cameraName: Camera.name,
                         cameraType: Camera.type,
                         cameraId: Camera.id,
-                        event: identifiedEvent.metadata.label,
-                        eventId: EID,
-                        hasDuration: HasDuration,
+                        expectEndEvent: hasEnd && !onEnd,
                     },
                 }
 
-                if (HasDuration) {
-                    UserPL.payload.eventStatus = 'Started'
-                    UserPL.payload.timestamps = {
-                        startDate: data.payload.start,
-                    }
-                } else {
-                    UserPL.payload.timestamps = {
-                        eventDate: data.payload.start || Now,
-                    }
+                const EventThumbnailSupport: ThumbnailSupport | undefined =
+                    identifiedEvent.startMetadata.thumbnailSupport
+
+                switch (EventThumbnailSupport) {
+                    case ThumbnailSupport.SINGLE:
+                    case ThumbnailSupport.START_END:
+                    case ThumbnailSupport.START_WITH_DELAYED_END:
+                        UserPL.payload.snapshot = {
+                            availability: 'NOW',
+                            uri: `/proxy/protect/api/events/${eventId}/thumbnail`,
+                        }
+                        break
+                    case ThumbnailSupport.SINGLE_DELAYED:
+                        UserPL.payload.snapshot = {
+                            availability: 'WITH_DELAY',
+                            uri: `/proxy/protect/api/events/${eventId}/thumbnail`,
+                        }
+                        break
                 }
 
-                let Waiter
-
-                if (identifiedEvent.metadata.valueExpression) {
-                    Waiter = Awaiter()
+                if (identifiedEvent.startMetadata.valueExpression) {
+                    const Waiter = Awaiter()
                     const EXP = RED.util.prepareJSONataExpression(
-                        identifiedEvent.metadata.valueExpression,
+                        identifiedEvent.startMetadata.valueExpression,
                         self
                     )
                     RED.util.evaluateJSONataExpression(
@@ -365,62 +340,29 @@ module.exports = (RED: NodeAPI) => {
                     await Promise.all([Waiter])
                 }
 
-                if (self.config.snapshotMode === 'None') {
-                    UserPL.payload.snapshotAvailability = 'DISABLED'
-                }
-
-                if (
-                    initialSnapshotModeRequirements.includes(
-                        self.config.snapshotMode
-                    )
-                ) {
-                    const EventThumbnailSupport: ThumbnailSupport =
-                        identifiedEvent.metadata.thumbnailSupport
-
-                    switch (EventThumbnailSupport) {
-                        case ThumbnailSupport.NONE:
-                            UserPL.payload.snapshotAvailability =
-                                'NOT_SUPPORTED'
-                            break
-
-                        case ThumbnailSupport.SINGLE_DELAYED:
-                            DelaySnapshot(EID, UserPL.payload.cameraName)
-                            UserPL.payload.snapshotAvailability = 'DELAYED'
-                            break
-
-                        case ThumbnailSupport.START_END:
-                        case ThumbnailSupport.START_WITH_DELAYED_END:
-                        case ThumbnailSupport.SINGLE:
-                            try {
-                                UserPL.payload.snapshotBuffer =
-                                    await getSnapshot(EID)
-                                UserPL.payload.snapshotAvailability = 'INLINE'
-                            } catch (e) {
-                                UserPL.payload.snapshotAvailability = 'ERROR'
-                                console.error(e)
-                            }
-                            break
-                    }
-                }
-
-                if (HasDuration) {
-                    startEvents[EID] = RED.util.cloneMessage(UserPL)
-                    startEvents[EID]._internal = {
-                        identifiedEvent: identifiedEvent,
-                        pinIndex: pinIndex,
-                    }
-                }
-
                 UserPL.payload.originalEventData = data
                 UserPL.topic = UserPL.payload.cameraName
 
-                if (!self.config.fanned) {
+                if (hasEnd && !onEnd) {
+                    UserPL.payload.eventStatus = 'StartOfEvent'
+                    UserPL.payload.timestamps = {
+                        startDate: data.payload.start || Now,
+                    }
                     self.send([UserPL, undefined])
-                } else {
-                    // SORT
-                    const array = new Array(this.config.outputs)
-                    array[pinIndex] = UserPL
-                    self.send(array)
+                    startEvents[eventId] = RED.util.cloneMessage(UserPL)
+                    startEvents[eventId].payload._profile = identifiedEvent
+                }
+
+                if (hasEnd && onEnd) {
+                    UserPL.payload._profile = identifiedEvent
+                    startEvents[eventId] = UserPL
+                }
+
+                if (!hasEnd) {
+                    UserPL.payload.timestamps = {
+                        eventDate: data.payload.start || Now,
+                    }
+                    self.send([UserPL, undefined])
                 }
             }
         }
@@ -459,18 +401,17 @@ module.exports = (RED: NodeAPI) => {
                     })
                     break
 
-                case SocketStatus.RECOVERY_ERROR:
+                case SocketStatus.HEARTBEAT:
                     self.status({
-                        fill: 'red',
+                        fill: 'yellow',
                         shape: 'dot',
-                        text: 'Recovery failing',
+                        text: 'Sending heartbeat...',
                     })
                     break
             }
         }
 
         const I: Interest = {
-            deviceId: this.config.cameraId,
             dataCallback: handleUpdate,
             statusCallback: statusCallback,
         }

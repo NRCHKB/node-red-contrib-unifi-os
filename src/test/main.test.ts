@@ -7,6 +7,7 @@ const helper = require('node-red-node-test-helper')
 const unifi = require('../nodes/unifi')
 const unifiRequestNode = require('../nodes/Request')
 const unifiAccessControllerNode = require('../nodes/AccessController')
+const unifiProtectNode = require('../nodes/Protect')
 
 const nock = require('nock')
 nock('https://localhost')
@@ -30,11 +31,22 @@ describe('UniFi Node', function () {
         helper.stopServer(done)
     })
 
+    let AC1
+    let R1
+    let P1;
+
+
     it('Initialize', function (done) {
         helper
             .load(
-                [unifi, unifiAccessControllerNode, unifiRequestNode],
+                [unifi, unifiAccessControllerNode, unifiRequestNode, unifiProtectNode],
                 [
+                    {
+                        id: 'ac1',
+                        type: 'unifi-access-controller',
+                        name: 'UDM Pro',
+                        controllerIp: 'localhost',
+                    },
                     {
                         id: 'r1',
                         type: 'unifi-request',
@@ -43,15 +55,22 @@ describe('UniFi Node', function () {
                         accessControllerNodeId: 'ac1',
                     },
                     {
-                        id: 'ac1',
-                        type: 'unifi-access-controller',
-                        name: 'UDM Pro',
-                        controllerIp: 'localhost',
+                        id: 'p1',
+                        type: 'unifi-protect',
+                        name: 'Protect',
+                        accessControllerNodeId: 'ac1',
                     },
                 ],
                 function () {
-                    helper.getNode('r1')
-                    helper.getNode('ac1')
+                    AC1 = helper.getNode("ac1")
+                    R1 = helper.getNode("r1")
+                    P1 = helper.getNode("p1")
+
+                    AC1.should.have.property('name', 'UDM Pro');
+                    R1.should.have.property('name', 'UDM Pro Requester');
+                    P1.should.have.property('name', 'Protect');
+
+                  
                     done()
                 }
             )
