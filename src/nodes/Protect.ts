@@ -225,7 +225,7 @@ module.exports = (RED: NodeAPI) => {
                     self.config.cameraIds,
                     'cameras',
                     self
-                )
+                ) || ''
 
                 const identifiedEvent = EventModels.find((eventModel) =>
                     isMatch(data, eventModel.shapeProfile)
