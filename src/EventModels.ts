@@ -35,7 +35,7 @@ export type Metadata =
 export type UnifiEventModel = {
     shapeProfile: Record<string, unknown>
     startMetadata: Metadata
-    endMetadata?: Metadata 
+    endMetadata?: Metadata
 }
 
 const EventModels: UnifiEventModel[] = [
@@ -56,7 +56,6 @@ const EventModels: UnifiEventModel[] = [
             id: 'AudioDetection',
             thumbnailSupport: ThumbnailSupport.SINGLE_DELAYED,
             idLocation: CameraIDLocation.ACTION_RECORDID,
-            
         },
         endMetadata: {
             valueExpression: 'payload.smartDetectTypes',
@@ -113,7 +112,7 @@ const EventModels: UnifiEventModel[] = [
             id: 'MotionEvent',
             thumbnailSupport: ThumbnailSupport.START_WITH_DELAYED_END,
             idLocation: CameraIDLocation.PAYLOAD_CAMERA,
-        }
+        },
     },
     {
         shapeProfile: {
@@ -140,7 +139,6 @@ const EventModels: UnifiEventModel[] = [
             payload: {
                 type: 'smartDetectZone',
                 smartDetectTypes: ['package'],
-               
             },
         },
         startMetadata: {
@@ -159,7 +157,6 @@ const EventModels: UnifiEventModel[] = [
             payload: {
                 type: 'smartDetectZone',
                 smartDetectTypes: ['vehicle'],
-              
             },
         },
         startMetadata: {
@@ -178,7 +175,6 @@ const EventModels: UnifiEventModel[] = [
             payload: {
                 type: 'smartDetectZone',
                 smartDetectTypes: ['person'],
-              
             },
         },
         startMetadata: {
@@ -197,7 +193,6 @@ const EventModels: UnifiEventModel[] = [
             payload: {
                 type: 'smartDetectZone',
                 smartDetectTypes: ['animal'],
-               
             },
         },
         startMetadata: {
@@ -216,7 +211,6 @@ const EventModels: UnifiEventModel[] = [
             payload: {
                 type: 'smartDetectZone',
                 smartDetectTypes: ['licensePlate'],
-              
             },
         },
         startMetadata: {

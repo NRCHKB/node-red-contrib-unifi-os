@@ -220,22 +220,16 @@ module.exports = (RED: NodeAPI) => {
             } else {
                 let Camera: Camera | undefined
 
-                //@ts-expect-error
-                const Cams = RED.util.evaluateNodeProperty(
-                    self.config.cameraIds,
-                    'cameras',
-                    self
-                ) || ''
+                const Cams: string[] = self.config.cameraIds?.split(',') || []
 
                 const identifiedEvent = EventModels.find((eventModel) =>
                     isMatch(data, eventModel.shapeProfile)
                 )
 
-                if (!identifiedEvent) {
+                if (!identifiedEvent || !identifiedEvent.startMetadata.id) {
                     return
                 }
 
-                //@ts-expect-error
                 switch (identifiedEvent.startMetadata.idLocation) {
                     case CameraIDLocation.ACTION_ID:
                         if (!Cams.includes(data.action.id)) {
@@ -276,12 +270,8 @@ module.exports = (RED: NodeAPI) => {
                     identifiedEvent.startMetadata.hasMultiple === true
                 const onEnd = identifiedEvent.startMetadata.sendOnEnd === true
 
-                //@ts-expect-error
-                const EVIDsArray = RED.util.evaluateNodeProperty(
-                    self.config.eventIds,
-                    'events',
-                    self
-                )
+                const EVIDsArray: string[] =
+                    self.config.eventIds?.split(',') || []
 
                 const matchedEvent = EVIDsArray.includes(
                     identifiedEvent.startMetadata.id
