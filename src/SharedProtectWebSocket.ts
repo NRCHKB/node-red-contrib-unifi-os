@@ -1,6 +1,7 @@
 import { logger } from '@nrchkb/logger'
 import { Loggers } from '@nrchkb/logger/src/types'
-import WebSocket from 'ws'
+import { Mutex } from 'async-mutex'
+import WebSocket, { RawData } from 'ws'
 
 import { endpoints } from './Endpoints'
 import { ProtectApiUpdates } from './lib/ProtectApiUpdates'
@@ -34,7 +35,7 @@ export class SharedProtectWebSocket {
     private wsLogger: Loggers
     private RECONNECT_TIMEOUT = 15000
     private HEARTBEAT_INTERVAL = 10000
-    private RECONNECT_ERROR_THRESHOLD = 3
+    private INITIAL_CONNECT_ERROR_THRESHOLD = 1000
     private reconnectAttempts = 0
     private currentStatus: SocketStatus = SocketStatus.UNKNOWN
 
@@ -71,6 +72,10 @@ export class SharedProtectWebSocket {
     }
 
     private disconnect(): void {
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer)
+            this.reconnectTimer = undefined
+        }
         this.ws?.removeAllListeners()
         this.ws?.close()
         this.ws?.terminate()
@@ -88,105 +93,125 @@ export class SharedProtectWebSocket {
         })
     }
 
+    private reconnectTimer: NodeJS.Timeout | undefined
+    private mutex = new Mutex()
+    private async reset(): Promise<void> {
+        await this.mutex.runExclusive(async () => {
+            if (this.reconnectTimer) {
+                clearTimeout(this.reconnectTimer)
+                this.reconnectTimer = undefined
+                await this.updateStatusForNodes(SocketStatus.CONNECTED)
+                this.watchDog()
+            }
+        })
+    }
+
     private async watchDog(): Promise<void> {
         setTimeout(async () => {
             await this.updateStatusForNodes(SocketStatus.HEARTBEAT)
             this.ws?.ping()
 
-            const reconnectTimer = setTimeout(async () => {
-                await this.updateStatusForNodes(
-                    SocketStatus.RECOVERING_CONNECTION
-                )
-                this.disconnect()
-                this.connect()
+            this.reconnectTimer = setTimeout(async () => {
+                await this.mutex.runExclusive(async () => {
+                    this.disconnect()
+                    await this.updateStatusForNodes(
+                        SocketStatus.RECOVERING_CONNECTION
+                    )
+                    this.connect()
+                })
             }, this.RECONNECT_TIMEOUT)
 
-            this.ws?.once('pong', async () => {
-                clearTimeout(reconnectTimer)
-                await this.updateStatusForNodes(SocketStatus.CONNECTED)
-                this.watchDog()
-            })
+            this.ws?.once('pong', this.reset.bind(this))
         }, this.HEARTBEAT_INTERVAL)
     }
 
-    private async connect(): Promise<void> {
-        if (this.currentStatus !== SocketStatus.RECOVERING_CONNECTION) {
-            await this.updateStatusForNodes(SocketStatus.CONNECTING)
+    private processData(Data: RawData): void {
+        let objectToSend: any
+
+        try {
+            objectToSend = JSON.parse(Data.toString())
+        } catch (_) {
+            objectToSend = ProtectApiUpdates.decodeUpdatePacket(
+                this.wsLogger,
+                Data as Buffer
+            )
         }
 
-        const wsPort =
-            this.accessControllerConfig.wsPort ||
-            endpoints[this.accessController.controllerType].wsport
-        const url = `${endpoints.protocol.webSocket}${this.accessControllerConfig.controllerIp}:${wsPort}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
-
-        this.ws = new WebSocket(url, {
-            rejectUnauthorized: false,
-            headers: {
-                Cookie: await this.accessController.getAuthCookie(),
-            },
+        Object.keys(this.callbacks).forEach((Node) => {
+            const Interest = this.callbacks[Node]
+            Interest.dataCallback(objectToSend)
         })
+    }
 
-        this.ws?.on('error', () => {
-            //
-        })
+    private processError(): void {
+        // This needs improving, but the watchDog is kind of taking care of stuff
+    }
 
-        let connectCheckInterval: NodeJS.Timeout | undefined
+    private connectCheckInterval: NodeJS.Timeout | undefined
+    private connectMutex = new Mutex()
 
-        connectCheckInterval = setInterval(async () => {
-            switch (this.ws?.readyState) {
-                case WebSocket.OPEN:
-                    if (connectCheckInterval) {
-                        clearInterval(connectCheckInterval)
-                        connectCheckInterval = undefined
-                    }
-                    await this.updateStatusForNodes(SocketStatus.CONNECTED)
-                    this.watchDog()
-
-                    this.ws?.on('message', (data) => {
-                        let objectToSend: any
-
-                        try {
-                            objectToSend = JSON.parse(data.toString())
-                        } catch (_) {
-                            objectToSend = ProtectApiUpdates.decodeUpdatePacket(
-                                this.wsLogger,
-                                data as Buffer
-                            )
-                        }
-
-                        Object.keys(this.callbacks).forEach((Node) => {
-                            const Interest = this.callbacks[Node]
-                            Interest.dataCallback(objectToSend)
-                        })
-                    })
-                    break
-
-                case WebSocket.CONNECTING: // maybe split this
-                case WebSocket.CLOSED:
-                case WebSocket.CLOSING:
-                    if (
-                        this.reconnectAttempts > this.RECONNECT_ERROR_THRESHOLD
-                    ) {
-                        if (connectCheckInterval) {
-                            clearInterval(connectCheckInterval)
-                            connectCheckInterval = undefined
-                        }
-                        await this.updateStatusForNodes(
-                            SocketStatus.CONNECTION_ERROR
-                        )
-                    } else {
-                        if (connectCheckInterval) {
-                            clearInterval(connectCheckInterval)
-                            connectCheckInterval = undefined
-                        }
-                        this.reconnectAttempts++
-                        setTimeout(async () => {
-                            this.connect()
-                        }, this.RECONNECT_TIMEOUT)
-                    }
-                    break
+    private async connect(): Promise<void> {
+        await this.mutex.runExclusive(async () => {
+            if (this.currentStatus !== SocketStatus.RECOVERING_CONNECTION) {
+                await this.updateStatusForNodes(SocketStatus.CONNECTING)
             }
-        }, 5000)
+
+            const wsPort =
+                this.accessControllerConfig.wsPort ||
+                endpoints[this.accessController.controllerType].wsport
+            const url = `${endpoints.protocol.webSocket}${this.accessControllerConfig.controllerIp}:${wsPort}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
+
+            this.ws = new WebSocket(url, {
+                rejectUnauthorized: false,
+                headers: {
+                    Cookie: await this.accessController.getAuthCookie(),
+                },
+            })
+
+            this.ws.on('error', this.processError.bind(this))
+
+            this.connectCheckInterval = setInterval(async () => {
+                await this.connectMutex.runExclusive(async () => {
+                    switch (this.ws?.readyState) {
+                        case WebSocket.OPEN:
+                            clearInterval(this.connectCheckInterval!)
+                            this.connectCheckInterval = undefined
+                            await this.updateStatusForNodes(
+                                SocketStatus.CONNECTED
+                            )
+                            this.reconnectAttempts = 0
+                            this.watchDog()
+                            this.ws.on('message', this.processData.bind(this))
+                            break
+
+                        case WebSocket.CONNECTING:
+                            // Do nothing, just keep waiting.
+                            break
+
+                        case WebSocket.CLOSED:
+                        case WebSocket.CLOSING:
+                            if (
+                                this.reconnectAttempts >
+                                this.INITIAL_CONNECT_ERROR_THRESHOLD
+                            ) {
+                                clearInterval(this.connectCheckInterval!)
+                                this.connectCheckInterval = undefined
+                                await this.updateStatusForNodes(
+                                    SocketStatus.CONNECTION_ERROR
+                                )
+                            } else {
+                                clearInterval(this.connectCheckInterval!)
+                                this.connectCheckInterval = undefined
+                                this.reconnectAttempts++
+                                setTimeout(async () => {
+                                    await this.connect()
+                                }, this.RECONNECT_TIMEOUT)
+                            }
+                            break
+                    }
+                })
+            }, 5000)
+        })
     }
 
     deregisterInterest(nodeId: string): void {
