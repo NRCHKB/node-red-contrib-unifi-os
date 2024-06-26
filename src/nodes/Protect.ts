@@ -176,7 +176,7 @@ module.exports = (RED: NodeAPI) => {
                         )
                         RED.util.evaluateJSONataExpression(
                             EXP,
-                            data,
+                            { _startData: startEvent, ...data },
                             (_err, res) => {
                                 startEvent.payload.value = res
                                 _AwaiterResolver()

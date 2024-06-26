@@ -13,31 +13,6 @@ export enum CameraIDLocation {
     ACTION_RECORDID = 3,
 }
 
-/*
- 
-    Description
-
-   + hasMultiple 
-   - sendOnEnd
-   = 2 Events (Start and End)
-       supports Value query on both
-
-   + hasMultiple 
-   + sendOnEnd
-   = 1 Event (End)
-       Supports Value query on end only
-
-   - hasMultiple 
-   = 1 Event (Start)
-       Supports Value query
-
-   - hasMultiple 
-   + sendOnEnd
-   = Invalid combination, prepare for armageddon
-
-
- */
-
 export type Metadata =
     | {
           label: string
@@ -63,8 +38,6 @@ export type UnifiEventModel = {
     endMetadata?: Metadata
 }
 
-
-
 const EventModels: UnifiEventModel[] = [
     {
         shapeProfile: {
@@ -85,7 +58,8 @@ const EventModels: UnifiEventModel[] = [
             idLocation: CameraIDLocation.ACTION_RECORDID,
         },
         endMetadata: {
-            valueExpression: '{"lineStatus":payload.metadata.linesStatus,"lineSettings":payload.metadata.linesSettings}',
+            valueExpression:
+                '{"detectedTypes":_startData.payload.originalEventData.payload.smartDetectTypes,"linesStatus":payload.metadata.linesStatus,"lineSettings":payload.metadata.linesSettings}',
         },
     },
     {
