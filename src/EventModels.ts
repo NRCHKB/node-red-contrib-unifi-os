@@ -35,10 +35,33 @@ export type Metadata =
 export type UnifiEventModel = {
     shapeProfile: Record<string, unknown>
     startMetadata: Metadata
-    endMetadata?: Metadata 
+    endMetadata?: Metadata
 }
 
 const EventModels: UnifiEventModel[] = [
+    {
+        shapeProfile: {
+            action: {
+                action: 'add',
+                modelKey: 'event',
+            },
+            payload: {
+                type: 'smartDetectLine',
+            },
+        },
+        startMetadata: {
+            label: 'Line Crossing Trigger',
+            hasMultiple: true,
+            sendOnEnd: true,
+            id: 'LineCross',
+            thumbnailSupport: ThumbnailSupport.NONE,
+            idLocation: CameraIDLocation.ACTION_RECORDID,
+        },
+        endMetadata: {
+            valueExpression:
+                '{"detectedTypes":_startData.payload.originalEventData.payload.smartDetectTypes,"linesStatus":payload.metadata.linesStatus,"lineSettings":payload.metadata.linesSettings}',
+        },
+    },
     {
         shapeProfile: {
             action: {
@@ -56,7 +79,6 @@ const EventModels: UnifiEventModel[] = [
             id: 'AudioDetection',
             thumbnailSupport: ThumbnailSupport.SINGLE_DELAYED,
             idLocation: CameraIDLocation.ACTION_RECORDID,
-            
         },
         endMetadata: {
             valueExpression: 'payload.smartDetectTypes',
@@ -113,7 +135,7 @@ const EventModels: UnifiEventModel[] = [
             id: 'MotionEvent',
             thumbnailSupport: ThumbnailSupport.START_WITH_DELAYED_END,
             idLocation: CameraIDLocation.PAYLOAD_CAMERA,
-        }
+        },
     },
     {
         shapeProfile: {
@@ -140,7 +162,6 @@ const EventModels: UnifiEventModel[] = [
             payload: {
                 type: 'smartDetectZone',
                 smartDetectTypes: ['package'],
-               
             },
         },
         startMetadata: {
@@ -159,7 +180,6 @@ const EventModels: UnifiEventModel[] = [
             payload: {
                 type: 'smartDetectZone',
                 smartDetectTypes: ['vehicle'],
-              
             },
         },
         startMetadata: {
@@ -178,7 +198,6 @@ const EventModels: UnifiEventModel[] = [
             payload: {
                 type: 'smartDetectZone',
                 smartDetectTypes: ['person'],
-              
             },
         },
         startMetadata: {
@@ -197,7 +216,6 @@ const EventModels: UnifiEventModel[] = [
             payload: {
                 type: 'smartDetectZone',
                 smartDetectTypes: ['animal'],
-               
             },
         },
         startMetadata: {
@@ -216,7 +234,6 @@ const EventModels: UnifiEventModel[] = [
             payload: {
                 type: 'smartDetectZone',
                 smartDetectTypes: ['licensePlate'],
-              
             },
         },
         startMetadata: {

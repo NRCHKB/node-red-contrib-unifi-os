@@ -1,11 +1,13 @@
 import { logger } from '@nrchkb/logger'
 import { NodeAPI } from 'node-red'
 import util from 'util'
+import { unzip } from 'zlib'
 
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
 import RequestNodeConfigType from '../types/RequestNodeConfigType'
 import RequestNodeInputPayloadType from '../types/RequestNodeInputPayloadType'
 import RequestNodeType from '../types/RequestNodeType'
+import { UnifiResponse } from '../types/UnifiResponse'
 
 module.exports = (RED: NodeAPI) => {
     const validateInputPayload = (
@@ -106,10 +108,24 @@ module.exports = (RED: NodeAPI) => {
                     log.debug('Result:')
                     log.trace(util.inspect(data))
 
-                    self.send({
-                        payload: data,
-                        inputMsg: msg,
-                    })
+                    console.log(typeof data)
+
+                    const _send = (Result: UnifiResponse) => {
+                        self.send({
+                            payload: Result,
+                            inputMsg: msg,
+                        })
+                    }
+
+                    if (Buffer.isBuffer(data)) {
+                        unzip(data, (_err, result) => {
+                            _send(
+                                JSON.parse(result.toString()) as UnifiResponse
+                            )
+                        })
+                    } else {
+                        _send(data)
+                    }
                 })
                 .catch((error) => {
                     log.error(error)

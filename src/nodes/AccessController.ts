@@ -219,6 +219,7 @@ module.exports = (RED: NodeAPI) => {
                         headers: {
                             cookie: (await self.getAuthCookie()) ?? '',
                             'Content-Type': 'application/json',
+                            'Accept-Encoding': 'gzip, deflate, br',
                             Accept: 'application/json',
                             'X-Request-ID': nodeId,
                         },
