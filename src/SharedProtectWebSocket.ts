@@ -109,6 +109,9 @@ export class SharedProtectWebSocket {
     private async watchDog(): Promise<void> {
         setTimeout(async () => {
             await this.updateStatusForNodes(SocketStatus.HEARTBEAT)
+            if (!this.ws || this.ws?.readyState !== WebSocket.OPEN) {
+                return
+            }
             this.ws?.ping()
 
             this.reconnectTimer = setTimeout(async () => {
