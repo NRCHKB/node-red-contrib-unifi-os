@@ -1,7 +1,7 @@
 import { logger } from '@nrchkb/logger'
 import { Loggers } from '@nrchkb/logger/src/types'
 import { Mutex } from 'async-mutex'
-import WebSocket, { RawData } from 'ws'
+import WebSocket, { OPEN, RawData } from 'ws'
 
 import { endpoints } from './Endpoints'
 import { ProtectApiUpdates } from './lib/ProtectApiUpdates'
@@ -77,8 +77,11 @@ export class SharedProtectWebSocket {
             this.reconnectTimer = undefined
         }
         this.ws?.removeAllListeners()
-        this.ws?.close()
-        this.ws?.terminate()
+        if (this.ws?.readyState === OPEN) {
+            this.ws?.close()
+            this.ws?.terminate()
+        }
+
         this.ws = undefined
     }
 

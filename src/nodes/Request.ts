@@ -1,7 +1,6 @@
 import { logger } from '@nrchkb/logger'
 import { NodeAPI } from 'node-red'
 import util from 'util'
-import { unzip } from 'zlib'
 
 import AccessControllerNodeType from '../types/AccessControllerNodeType'
 import RequestNodeConfigType from '../types/RequestNodeConfigType'
@@ -117,13 +116,7 @@ module.exports = (RED: NodeAPI) => {
                         })
                     }
 
-                    if (Buffer.isBuffer(data)) {
-                        unzip(data, (_err, result) => {
-                            _send(
-                                JSON.parse(result.toString()) as UnifiResponse
-                            )
-                        })
-                    } else {
+                    if (!Buffer.isBuffer(data) && typeof data !== 'string') {
                         _send(data)
                     }
                 })
