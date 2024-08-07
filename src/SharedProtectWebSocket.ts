@@ -34,7 +34,7 @@ export class SharedProtectWebSocket {
     private accessController: AccessControllerNodeType
     private wsLogger: Loggers
     private RECONNECT_TIMEOUT = 15000
-    private HEARTBEAT_INTERVAL = 10000
+    private HEARTBEAT_INTERVAL = 30000
     private INITIAL_CONNECT_ERROR_THRESHOLD = 1000
     private reconnectAttempts = 0
     private currentStatus: SocketStatus = SocketStatus.UNKNOWN
@@ -78,7 +78,7 @@ export class SharedProtectWebSocket {
         }
         this.ws?.removeAllListeners()
         if (this.ws?.readyState === OPEN) {
-            this.ws?.close()
+            //this.ws?.close()
             this.ws?.terminate()
         }
 
@@ -110,6 +110,7 @@ export class SharedProtectWebSocket {
     }
 
     private async watchDog(): Promise<void> {
+        
         setTimeout(async () => {
             await this.updateStatusForNodes(SocketStatus.HEARTBEAT)
             if (!this.ws || this.ws?.readyState !== WebSocket.OPEN) {
@@ -126,8 +127,7 @@ export class SharedProtectWebSocket {
                     this.connect()
                 })
             }, this.RECONNECT_TIMEOUT)
-
-            this.ws?.once('pong', this.reset.bind(this))
+            
         }, this.HEARTBEAT_INTERVAL)
     }
 
@@ -166,6 +166,9 @@ export class SharedProtectWebSocket {
                 this.accessControllerConfig.wsPort ||
                 endpoints[this.accessController.controllerType].wsport
             const url = `${endpoints.protocol.webSocket}${this.accessControllerConfig.controllerIp}:${wsPort}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
+            
+            this.disconnect();
+            this.ws?.removeAllListeners();
 
             this.ws = new WebSocket(url, {
                 rejectUnauthorized: false,
@@ -175,6 +178,8 @@ export class SharedProtectWebSocket {
             })
 
             this.ws.on('error', this.processError.bind(this))
+            this.ws.on('pong', this.reset.bind(this))
+            this.ws.on('message', this.processData.bind(this))
 
             this.connectCheckInterval = setInterval(async () => {
                 await this.connectMutex.runExclusive(async () => {
@@ -186,8 +191,7 @@ export class SharedProtectWebSocket {
                                 SocketStatus.CONNECTED
                             )
                             this.reconnectAttempts = 0
-                            this.watchDog()
-                            this.ws.on('message', this.processData.bind(this))
+                            this.watchDog()                            
                             break
 
                         case WebSocket.CONNECTING:
