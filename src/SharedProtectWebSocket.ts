@@ -72,17 +72,25 @@ export class SharedProtectWebSocket {
     }
 
     private disconnect(): void {
+      
         if (this.reconnectTimer) {
             clearTimeout(this.reconnectTimer)
             this.reconnectTimer = undefined
         }
-        this.ws?.removeAllListeners()
-        if (this.ws?.readyState === OPEN) {
-            //this.ws?.close()
-            this.ws?.terminate()
+       
+        try {
+            this.ws?.removeAllListeners()
+            if (this.ws?.readyState === OPEN) {
+                //this.ws?.close()
+                this.ws?.terminate()
+            }
+            this.ws = undefined
+        } catch (error) {
+            console.log('inifi-os disconnect: ' + (error as Error).stack)
         }
+        
 
-        this.ws = undefined
+        
     }
 
     private updateStatusForNodes = (Status: SocketStatus): Promise<void> => {
@@ -116,7 +124,12 @@ export class SharedProtectWebSocket {
             if (!this.ws || this.ws?.readyState !== WebSocket.OPEN) {
                 return
             }
-            this.ws?.ping()
+            try {
+                this.ws?.ping()
+            } catch (error) {
+                console.log('unifi-os this.ws?.ping() ' + (error as Error).stack)
+            }
+            
 
             this.reconnectTimer = setTimeout(async () => {
                 await this.mutex.runExclusive(async () => {
@@ -167,19 +180,29 @@ export class SharedProtectWebSocket {
                 endpoints[this.accessController.controllerType].wsport
             const url = `${endpoints.protocol.webSocket}${this.accessControllerConfig.controllerIp}:${wsPort}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
             
-            this.disconnect();
-            this.ws?.removeAllListeners();
-
-            this.ws = new WebSocket(url, {
-                rejectUnauthorized: false,
-                headers: {
-                    Cookie: await this.accessController.getAuthCookie(),
-                },
-            })
-
-            this.ws.on('error', this.processError.bind(this))
-            this.ws.on('pong', this.reset.bind(this))
-            this.ws.on('message', this.processData.bind(this))
+            this.disconnect()
+    
+            try {
+                this.ws = new WebSocket(url, {
+                    rejectUnauthorized: false,
+                    headers: {
+                        Cookie: await this.accessController.getAuthCookie(),
+                    },
+                })
+                this.ws.on('error', (error) => {
+                    // Handle error
+                    console.log('unifi-os connect(): this.ws.on(error ' + error.stack)
+                  })
+                this.ws.on('pong', this.reset.bind(this))
+                this.ws.on('message', this.processData.bind(this))
+            } catch (error) {
+                console.log('unifi-os connect(): this.ws = new WebSocket ' + (error as Error).stack)
+                clearInterval(this.connectCheckInterval!)
+                this.connectCheckInterval = undefined
+                this.reconnectAttempts = 0
+                this.watchDog()
+            }
+            
 
             this.connectCheckInterval = setInterval(async () => {
                 await this.connectMutex.runExclusive(async () => {
