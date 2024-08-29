@@ -34,7 +34,7 @@ export class SharedProtectWebSocket {
     private accessController: AccessControllerNodeType
     private wsLogger: Loggers
     private RECONNECT_TIMEOUT = 15000
-    private HEARTBEAT_INTERVAL = 10000
+    private HEARTBEAT_INTERVAL = 30000
     private INITIAL_CONNECT_ERROR_THRESHOLD = 1000
     private reconnectAttempts = 0
     private currentStatus: SocketStatus = SocketStatus.UNKNOWN
@@ -67,22 +67,38 @@ export class SharedProtectWebSocket {
     }
 
     shutdown(): void {
+        this.wsLogger?.debug(
+            'shutdown()'
+        )
         this.disconnect()
         this.callbacks = {}
     }
 
-    private disconnect(): void {
+    private  async disconnect(): Promise<void> {
+      
+        this.wsLogger?.debug(
+            'Disconnecting websocket'
+        )
         if (this.reconnectTimer) {
             clearTimeout(this.reconnectTimer)
             this.reconnectTimer = undefined
         }
-        this.ws?.removeAllListeners()
-        if (this.ws?.readyState === OPEN) {
-            this.ws?.close()
-            this.ws?.terminate()
-        }
+       
+        try {
+            this.ws?.removeAllListeners()
+            if (this.ws?.readyState === OPEN) {
+                //this.ws?.close()
+                //this.ws?.terminate()
+            }
+            this.ws?.terminate() // Terminate anyway
+            this.ws = undefined
+        } catch (error) {
+            this.wsLogger?.debug(
+                'Disconnecting websocket error '+ (error as Error).stack
+            )
+        }       
 
-        this.ws = undefined
+        
     }
 
     private updateStatusForNodes = (Status: SocketStatus): Promise<void> => {
@@ -97,37 +113,71 @@ export class SharedProtectWebSocket {
     }
 
     private reconnectTimer: NodeJS.Timeout | undefined
+    private heartBeatTimer: NodeJS.Timeout | undefined    
     private mutex = new Mutex()
     private async reset(): Promise<void> {
+        this.wsLogger?.debug(
+            'PONG received'
+        )
         await this.mutex.runExclusive(async () => {
             if (this.reconnectTimer) {
                 clearTimeout(this.reconnectTimer)
                 this.reconnectTimer = undefined
                 await this.updateStatusForNodes(SocketStatus.CONNECTED)
-                this.watchDog()
+                try {
+                    this.watchDog()
+                } catch (error) {
+                    this.wsLogger?.error(
+                        'reset watchdog error: ' + (error as Error).stack
+                    )
+                }               
             }
         })
     }
 
     private async watchDog(): Promise<void> {
-        setTimeout(async () => {
+        
+        if (this.heartBeatTimer!==undefined) clearTimeout(this.heartBeatTimer)
+        this.heartBeatTimer = setTimeout(async () => {
+            this.wsLogger?.debug(
+                'heartBeatTimer kicked in'
+            )         
             await this.updateStatusForNodes(SocketStatus.HEARTBEAT)
             if (!this.ws || this.ws?.readyState !== WebSocket.OPEN) {
                 return
             }
-            this.ws?.ping()
-
+            try {
+                this.wsLogger?.debug(
+                    'gonna PING the server...'
+                )
+                this.ws?.ping()
+            } catch (error) {
+                this.wsLogger?.error(
+                    'PING error: ' + (error as Error).stack
+                )
+            }
+            
+            if (this.reconnectTimer!==undefined) clearTimeout(this.reconnectTimer)
             this.reconnectTimer = setTimeout(async () => {
+                this.wsLogger?.debug(
+                    'reconnectTimer kicked in'
+                )     
                 await this.mutex.runExclusive(async () => {
-                    this.disconnect()
+                    await this.disconnect()
                     await this.updateStatusForNodes(
                         SocketStatus.RECOVERING_CONNECTION
                     )
-                    this.connect()
+                    try {
+                        await this.connect()
+                    } catch (error) {    
+                        this.wsLogger?.error(
+                            'connect into reconnectTimer error: ' + (error as Error).stack
+                        )                    
+                    }
+                    
                 })
             }, this.RECONNECT_TIMEOUT)
-
-            this.ws?.once('pong', this.reset.bind(this))
+            
         }, this.HEARTBEAT_INTERVAL)
     }
 
@@ -149,14 +199,13 @@ export class SharedProtectWebSocket {
         })
     }
 
-    private processError(): void {
-        // This needs improving, but the watchDog is kind of taking care of stuff
-    }
+
 
     private connectCheckInterval: NodeJS.Timeout | undefined
     private connectMutex = new Mutex()
 
     private async connect(): Promise<void> {
+        
         await this.mutex.runExclusive(async () => {
             if (this.currentStatus !== SocketStatus.RECOVERING_CONNECTION) {
                 await this.updateStatusForNodes(SocketStatus.CONNECTING)
@@ -166,15 +215,33 @@ export class SharedProtectWebSocket {
                 this.accessControllerConfig.wsPort ||
                 endpoints[this.accessController.controllerType].wsport
             const url = `${endpoints.protocol.webSocket}${this.accessControllerConfig.controllerIp}:${wsPort}/proxy/protect/ws/updates?lastUpdateId=${this.bootstrap.lastUpdateId}`
-
-            this.ws = new WebSocket(url, {
-                rejectUnauthorized: false,
-                headers: {
-                    Cookie: await this.accessController.getAuthCookie(),
-                },
-            })
-
-            this.ws.on('error', this.processError.bind(this))
+            
+            this.disconnect()
+    
+            try {
+                this.ws = new WebSocket(url, {
+                    rejectUnauthorized: false,
+                    headers: {
+                        Cookie: await this.accessController.getAuthCookie(),
+                    },
+                })
+                this.ws.on('error', (error) => {
+                    this.wsLogger?.error(
+                        'connect(): this.ws.on(error: ' + (error as Error).stack
+                    )
+                  })
+                this.ws.on('pong', this.reset.bind(this))
+                this.ws.on('message', this.processData.bind(this))
+            } catch (error) {
+                this.wsLogger.error(
+                    'Error instantiating websocket ' + (error as Error).stack
+                )
+                clearInterval(this.connectCheckInterval!)
+                this.connectCheckInterval = undefined
+                this.reconnectAttempts = 0
+                this.watchDog()
+            }
+            
 
             this.connectCheckInterval = setInterval(async () => {
                 await this.connectMutex.runExclusive(async () => {
@@ -186,8 +253,7 @@ export class SharedProtectWebSocket {
                                 SocketStatus.CONNECTED
                             )
                             this.reconnectAttempts = 0
-                            this.watchDog()
-                            this.ws.on('message', this.processData.bind(this))
+                            this.watchDog()                            
                             break
 
                         case WebSocket.CONNECTING:
@@ -210,7 +276,15 @@ export class SharedProtectWebSocket {
                                 this.connectCheckInterval = undefined
                                 this.reconnectAttempts++
                                 setTimeout(async () => {
-                                    await this.connect()
+                                    try {
+                                        await this.disconnect()
+                                        await this.connect()
+                                    } catch (error) {
+                                        this.wsLogger?.error(
+                                            'Websocket disconnecting error ' + (error as Error).stack
+                                        )
+                                    }
+                                    
                                 }, this.RECONNECT_TIMEOUT)
                             }
                             break
