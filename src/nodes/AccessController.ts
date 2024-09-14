@@ -36,7 +36,6 @@ module.exports = (RED: NodeAPI) => {
     ) {
         const self = this
         const log = logger('UniFi', 'AccessController', self.name, self)
-        
 
         RED.nodes.createNode(self, config)
         self.config = config
@@ -82,35 +81,32 @@ module.exports = (RED: NodeAPI) => {
 
         // The Boostrap request
         const getBootstrap = async (init?: boolean) => {
-
-            if(hasProtect){
+            if (hasProtect) {
                 self.request(self.id, bootstrapURI, 'GET', undefined, 'json')
-                .then((res: UnifiResponse) => {
-                    self.bootstrapObject = res as Bootstrap
+                    .then((res: UnifiResponse) => {
+                        self.bootstrapObject = res as Bootstrap
 
-                    if (init) {
-                        // Fire up a shared websocket to the Protect WS endpoint
-                        self.protectSharedWS = new SharedProtectWebSocket(
-                            self,
-                            self.config,
-                            self.bootstrapObject
+                        if (init) {
+                            // Fire up a shared websocket to the Protect WS endpoint
+                            self.protectSharedWS = new SharedProtectWebSocket(
+                                self,
+                                self.config,
+                                self.bootstrapObject
+                            )
+                        } else {
+                            // Update the shared websocket to the Protect WS endpoint, so we can connect to its new lastUpdateId
+                            self.protectSharedWS?.updateLastUpdateId(
+                                self.bootstrapObject
+                            )
+                        }
+                    })
+                    .catch((error) => {
+                        hasProtect = false
+                        log.debug(
+                            `Received error when obtaining bootstrap: ${error}, assuming this is to be expected, i.e no protect instance.`
                         )
-                    } else {
-                        // Update the shared websocket to the Protect WS endpoint, so we can connect to its new lastUpdateId
-                        self.protectSharedWS?.updateLastUpdateId(
-                            self.bootstrapObject
-                        )
-                    }
-                })
-                .catch((error) => {
-                    hasProtect = false
-                    log.debug(
-                        `Received error when obtaining bootstrap: ${error}, assuming this is to be expected, i.e no protect instance.`
-                    )
-                })
+                    })
             }
-
-           
         }
 
         const refresh = (init?: boolean) => {
@@ -219,6 +215,7 @@ module.exports = (RED: NodeAPI) => {
                         headers: {
                             cookie: (await self.getAuthCookie()) ?? '',
                             'Content-Type': 'application/json',
+                            'Accept-Encoding': 'gzip, deflate, br',
                             Accept: 'application/json',
                             'X-Request-ID': nodeId,
                         },
