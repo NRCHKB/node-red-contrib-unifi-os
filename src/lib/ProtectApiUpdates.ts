@@ -2,7 +2,8 @@
  *
  * protect-api-updates.ts: Our UniFi Protect realtime updates event API implementation.
  */
-import { Loggers } from '@nrchkb/logger/src/types'
+
+import { Loggers } from '@nrchkb/logger/build/types/types'
 import zlib from 'zlib'
 
 // This type declaration make all properties optional recursively including nested objects. This should

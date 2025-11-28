@@ -307,4 +307,5 @@ $RECYCLE.BIN/
 .vscode
 
 build/**/*.js
+build/**/*.d.ts
 .npm-upgrade.json
