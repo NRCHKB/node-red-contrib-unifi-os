@@ -1,8 +1,9 @@
 name: Publish DEV
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - dev
 
 jobs:
   test:
@@ -15,7 +16,7 @@ jobs:
           node-version: 20.x
           cache: npm
       - run: | 
-          npm install
+          npm ci
           npm run build
           npm run test
 
@@ -30,8 +31,8 @@ jobs:
           node-version: 20.x
           cache: npm
           registry-url: https://registry.npmjs.org/
-      - run: | 
-          npm install
+      - run: |
+          npm ci
           npm run build
           npm publish --access public --tag dev
         env:
