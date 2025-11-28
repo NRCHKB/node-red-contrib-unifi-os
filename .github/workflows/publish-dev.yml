@@ -15,7 +15,7 @@ jobs:
           node-version: 20.x
           cache: npm
       - run: | 
-          npm ci
+          npm i
           npm run build
           npm run test
 
@@ -30,7 +30,7 @@ jobs:
           cache: npm
           registry-url: https://registry.npmjs.org/
       - run: |
-          npm ci
+          npm i
           npm run build
           npm publish --access public --tag dev
         env:
