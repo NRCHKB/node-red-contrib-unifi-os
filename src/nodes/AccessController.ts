@@ -11,10 +11,6 @@ import { Bootstrap } from '../types/Bootstrap'
 import { HttpError } from '../types/HttpError'
 import { UnifiResponse } from '../types/UnifiResponse'
 
-const {
-    AbortController,
-} = require('abortcontroller-polyfill/dist/cjs-ponyfill')
-
 const bootstrapURI = '/proxy/protect/api/bootstrap'
 let hasProtect = true /* Lest assume at first */
 

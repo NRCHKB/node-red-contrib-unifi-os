@@ -1,5 +1,5 @@
 import { logger } from '@nrchkb/logger'
-import { Loggers } from '@nrchkb/logger/src/types'
+import { Loggers } from '@nrchkb/logger/build/types/types'
 import * as crypto from 'crypto'
 import { NodeAPI } from 'node-red'
 import util from 'util'

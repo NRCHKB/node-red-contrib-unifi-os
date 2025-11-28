@@ -173,9 +173,6 @@ typings/
 # Optional npm cache directory
 .npm
 
-# Optional eslint cache
-.eslintcache
-
 # Optional REPL history
 .node_repl_history
 
@@ -310,4 +307,5 @@ $RECYCLE.BIN/
 .vscode
 
 build/**/*.js
+build/**/*.d.ts
 .npm-upgrade.json
