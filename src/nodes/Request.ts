@@ -104,10 +104,8 @@ module.exports = (RED: NodeAPI) => {
                         shape: 'dot',
                         text: 'Sent',
                     })
-                    log.debug('Result:')
+                    log.debug(`Result (${typeof data}):`)
                     log.trace(util.inspect(data))
-
-                    console.log(typeof data)
 
                     const _send = (Result: UnifiResponse) => {
                         self.send({
@@ -116,7 +114,9 @@ module.exports = (RED: NodeAPI) => {
                         })
                     }
 
-                    if (!Buffer.isBuffer(data) && typeof data !== 'string') {
+                    if (Buffer.isBuffer(data) || typeof data === 'string') {
+                        self.send({ payload: data, inputMsg: msg })
+                    } else {
                         _send(data)
                     }
                 })
