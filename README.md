@@ -1,5 +1,9 @@
 # node-red-contrib-unifi-os
 
+***Archived February, 2026***
+
+***Everything this node could do is now possible with official APIs. This node may still work but we now recommend to use those officially supported methods!***
+
 <img width="770" alt="image" src="https://user-images.githubusercontent.com/38265886/125874556-df4a9d8e-11da-4a18-a11a-c12717afe11e.png">
 
 ### * What is this contrib? Why is it different?
